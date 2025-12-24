@@ -13,26 +13,40 @@ using MyWedding.Infrastructure.Persistence.Repositories;
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
+// --- Define the CORS policy name ---
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
 // --- Add services to the container. ---
 
-// 1. Add MediatR for Application layer - NEW CORRECT SYNTAX
+// 1. Add CORS services
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+                      policy =>
+                      {
+                          policy.WithOrigins("http://localhost:3000") // Your frontend's address
+                                .AllowAnyHeader()
+                                .AllowAnyMethod();
+                      });
+});
+
+// 2. Add MediatR for Application layer
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(SyncUserCommand).Assembly));
 
-// 2. Add DbContext for Infrastructure layer
+// 3. Add DbContext for Infrastructure layer
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
-// 3. Register Repositories and Unit of Work
+// 4. Register Repositories and Unit of Work
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IWeddingEventRepository, WeddingEventRepository>(); // <-- ADD THIS LINE
 builder.Services.AddScoped<IUnitOfWork, ApplicationDbContext>();
 
-// 4. Initialize Firebase Admin SDK
-// We still need to create the FirebaseAdminSetup file in Infrastructure
-// and then we can uncomment this.
-// builder.Services.InitializeFirebase(); 
+// 5. Initialize Firebase Admin SDK
+builder.Services.InitializeFirebase(builder.Configuration);
 
-// 5. Configure JWT Bearer Authentication from Firebase
+// 6. Configure JWT Bearer Authentication from Firebase
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -68,6 +82,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// 7. Use the CORS policy - IMPORTANT: This goes before Authentication/Authorization
+app.UseCors(MyAllowSpecificOrigins);
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
