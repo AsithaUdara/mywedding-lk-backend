@@ -14,6 +14,8 @@ namespace MyWedding.Infrastructure.Persistence
         public DbSet<WeddingEvent> WeddingEvents { get; set; }
         public DbSet<EventOrganizer> EventOrganizers { get; set; }
         public DbSet<EventTask> EventTasks { get; set; }
+        public DbSet<BudgetCategory> BudgetCategories { get; set; }
+        public DbSet<Expense> Expenses { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -50,6 +52,29 @@ namespace MyWedding.Infrastructure.Persistence
                 .WithMany()
                 .HasForeignKey(t => t.EventId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Expense -> WeddingEvent (cascade delete expenses when event is deleted)
+            modelBuilder.Entity<Expense>()
+                .HasOne(e => e.WeddingEvent)
+                .WithMany()
+                .HasForeignKey(e => e.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Expense -> BudgetCategory (restrict delete when referenced)
+            modelBuilder.Entity<Expense>()
+                .HasOne(e => e.BudgetCategory)
+                .WithMany()
+                .HasForeignKey(e => e.BudgetCategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Decimal precision for financial values
+            modelBuilder.Entity<Expense>()
+                .Property(e => e.Amount)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<WeddingEvent>()
+                .Property(e => e.TotalBudget)
+                .HasColumnType("decimal(18,2)");
         }
     }
 }
