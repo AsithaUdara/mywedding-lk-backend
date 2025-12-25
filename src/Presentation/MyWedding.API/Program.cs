@@ -41,6 +41,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // 4. Register Repositories and Unit of Work
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IWeddingEventRepository, WeddingEventRepository>();
+builder.Services.AddScoped<IEventOrganizerRepository, EventOrganizerRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>()); // <-- FIXED LINE
 
 // 5. Initialize Firebase Admin SDK

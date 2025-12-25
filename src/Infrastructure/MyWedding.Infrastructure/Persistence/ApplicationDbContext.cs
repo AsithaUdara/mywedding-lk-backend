@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Interfaces;
-using System.Reflection;
 
 namespace MyWedding.Infrastructure.Persistence
 {
@@ -13,18 +12,36 @@ namespace MyWedding.Infrastructure.Persistence
 
         public DbSet<User> Users { get; set; }
         public DbSet<WeddingEvent> WeddingEvents { get; set; }
-        
+        public DbSet<EventOrganizer> EventOrganizers { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+            base.OnModelCreating(modelBuilder);
 
+            // Composite key for EventOrganizer
+            modelBuilder.Entity<EventOrganizer>()
+                .HasKey(eo => new { eo.EventId, eo.UserId });
+
+            // EventOrganizer -> WeddingEvent (cascade delete organizers when event is deleted)
+            modelBuilder.Entity<EventOrganizer>()
+                .HasOne(eo => eo.WeddingEvent)
+                .WithMany()
+                .HasForeignKey(eo => eo.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // EventOrganizer -> User (cascade delete organizers when user is deleted)
+            modelBuilder.Entity<EventOrganizer>()
+                .HasOne(eo => eo.User)
+                .WithMany()
+                .HasForeignKey(eo => eo.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // WeddingEvent -> User (CreatedBy) - restrict delete to avoid multiple cascade paths
             modelBuilder.Entity<WeddingEvent>()
                 .HasOne(e => e.CreatedBy)
                 .WithMany()
                 .HasForeignKey(e => e.CreatedById)
-                .IsRequired();
-
-            base.OnModelCreating(modelBuilder);
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

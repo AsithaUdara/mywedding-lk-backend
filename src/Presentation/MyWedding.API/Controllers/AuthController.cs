@@ -1,10 +1,13 @@
+// File: src/Presentation/MyWedding.API/Controllers/AuthController.cs
+
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MyWedding.Application.Features.Users.Commands.SyncUser;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using FirebaseAdmin.Auth; // <-- ADD THIS
+using FirebaseAdmin;
+using FirebaseAdmin.Auth;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -29,19 +32,27 @@ public class AuthController : ControllerBase
             return BadRequest("Invalid token claims.");
         }
 
-        // --- THE FIX IS HERE ---
-        // Get the full user record directly from Firebase to ensure we have the latest displayName
-        UserRecord userRecord;
-        try
+        // --- BULLETPROOF FIX ---
+        UserRecord? userRecord = null;
+        var displayName = "";
+
+        if (FirebaseApp.DefaultInstance != null)
         {
-            userRecord = await FirebaseAuth.DefaultInstance.GetUserAsync(firebaseUid);
+            try
+            {
+                userRecord = await FirebaseAuth.DefaultInstance.GetUserAsync(firebaseUid);
+                displayName = userRecord?.DisplayName ?? "";
+            }
+            catch (FirebaseAuthException)
+            {
+                displayName = User.FindFirstValue("name") ?? "";
+            }
         }
-        catch (FirebaseAuthException ex)
+        else
         {
-            return BadRequest($"Failed to retrieve user from Firebase: {ex.Message}");
+            Console.WriteLine("ERROR: FirebaseApp.DefaultInstance is null. SDK may not be initialized.");
+            displayName = User.FindFirstValue("name") ?? "";
         }
-        
-        var displayName = userRecord.DisplayName ?? "";
         // --- END OF FIX ---
 
         string firstName;
@@ -56,7 +67,7 @@ public class AuthController : ControllerBase
         }
         else
         {
-            firstName = nameParts.Length > 0 && !string.IsNullOrWhiteSpace(nameParts[0]) ? nameParts[0] : "User";
+            firstName = nameParts.Length > 0 ? nameParts[0] : "User";
             lastName = "";
         }
 
