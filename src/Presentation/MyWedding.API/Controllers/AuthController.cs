@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using MyWedding.Application.Features.Users.Commands.SyncUser;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using FirebaseAdmin.Auth; // <-- ADD THIS
 
 [ApiController]
 [Route("api/[controller]")]
@@ -22,17 +23,41 @@ public class AuthController : ControllerBase
     {
         var firebaseUid = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var email = User.FindFirstValue(ClaimTypes.Email);
-        var name = User.FindFirstValue("name") ?? ""; // Firebase often sends name in this claim
-
-        // Basic name splitting, can be improved on the frontend
-        var nameParts = name.Split(' ', 2);
-        var firstName = nameParts.Length > 0 ? nameParts[0] : "User";
-        var lastName = nameParts.Length > 1 ? nameParts[1] : "";
-
 
         if (string.IsNullOrEmpty(firebaseUid) || string.IsNullOrEmpty(email))
         {
             return BadRequest("Invalid token claims.");
+        }
+
+        // --- THE FIX IS HERE ---
+        // Get the full user record directly from Firebase to ensure we have the latest displayName
+        UserRecord userRecord;
+        try
+        {
+            userRecord = await FirebaseAuth.DefaultInstance.GetUserAsync(firebaseUid);
+        }
+        catch (FirebaseAuthException ex)
+        {
+            return BadRequest($"Failed to retrieve user from Firebase: {ex.Message}");
+        }
+        
+        var displayName = userRecord.DisplayName ?? "";
+        // --- END OF FIX ---
+
+        string firstName;
+        string lastName;
+        
+        var nameParts = displayName.Trim().Split(' ', 2);
+        
+        if (nameParts.Length > 1)
+        {
+            firstName = nameParts[0];
+            lastName = nameParts[1];
+        }
+        else
+        {
+            firstName = nameParts.Length > 0 && !string.IsNullOrWhiteSpace(nameParts[0]) ? nameParts[0] : "User";
+            lastName = "";
         }
 
         var command = new SyncUserCommand

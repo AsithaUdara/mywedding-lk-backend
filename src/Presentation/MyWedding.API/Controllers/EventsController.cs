@@ -3,6 +3,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MyWedding.Application.Features.Events.Commands.CreateEvent;
+using MyWedding.Application.Features.Events.Queries.GetEventById;
+using MyWedding.Application.Features.Events.Queries.GetEventsByUserId;
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -37,7 +39,38 @@ public class EventsController : ControllerBase
 
         var eventId = await _mediator.Send(command);
 
-        return CreatedAtAction(nameof(CreateEvent), new { id = eventId }, new { EventId = eventId });
+        return CreatedAtAction(nameof(GetEventById), new { id = eventId }, new { EventId = eventId });
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetEventById(Guid id)
+    {
+        var query = new GetEventByIdQuery { EventId = id };
+        var result = await _mediator.Send(query);
+
+        // Ensure the current user owns this event (security check)
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (result != null && result.CreatedById != currentUserId)
+        {
+            return Forbid(); // User is trying to access an event that is not theirs
+        }
+
+        return result is not null ? Ok(result) : NotFound();
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetEventsForCurrentUser()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
+        var query = new GetEventsByUserIdQuery { UserId = userId };
+        var result = await _mediator.Send(query);
+
+        return Ok(result);
     }
 }
 
