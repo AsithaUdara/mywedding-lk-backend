@@ -13,6 +13,7 @@ namespace MyWedding.Infrastructure.Persistence
         public DbSet<User> Users { get; set; }
         public DbSet<WeddingEvent> WeddingEvents { get; set; }
         public DbSet<EventOrganizer> EventOrganizers { get; set; }
+        public DbSet<EventTask> EventTasks { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -42,6 +43,13 @@ namespace MyWedding.Infrastructure.Persistence
                 .WithMany()
                 .HasForeignKey(e => e.CreatedById)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // EventTask -> WeddingEvent (cascade delete tasks when event is deleted)
+            modelBuilder.Entity<EventTask>()
+                .HasOne(t => t.WeddingEvent)
+                .WithMany()
+                .HasForeignKey(t => t.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

@@ -9,6 +9,7 @@ using MyWedding.Domain.Interfaces;
 using MyWedding.Infrastructure.Authentication;
 using MyWedding.Infrastructure.Persistence;
 using MyWedding.Infrastructure.Persistence.Repositories;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -42,6 +43,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IWeddingEventRepository, WeddingEventRepository>();
 builder.Services.AddScoped<IEventOrganizerRepository, EventOrganizerRepository>();
+builder.Services.AddScoped<IEventTaskRepository, EventTaskRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>()); // <-- FIXED LINE
 
 // 5. Initialize Firebase Admin SDK
@@ -69,7 +71,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

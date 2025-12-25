@@ -1,6 +1,7 @@
 // File: src/Core/MyWedding.Application/Features/Events/Commands/CreateEvent/CreateEventCommandHandler.cs
 using MediatR;
 using MyWedding.Domain.Entities;
+using MyWedding.Domain.Enums;
 using MyWedding.Domain.Interfaces;
 using System;
 using System.Threading;
@@ -11,11 +12,16 @@ namespace MyWedding.Application.Features.Events.Commands.CreateEvent
     public class CreateEventCommandHandler : IRequestHandler<CreateEventCommand, Guid>
     {
         private readonly IWeddingEventRepository _weddingEventRepository;
+        private readonly IEventOrganizerRepository _organizerRepository;
         private readonly IUnitOfWork _unitOfWork;
 
-        public CreateEventCommandHandler(IWeddingEventRepository weddingEventRepository, IUnitOfWork unitOfWork)
+        public CreateEventCommandHandler(
+            IWeddingEventRepository weddingEventRepository,
+            IEventOrganizerRepository organizerRepository,
+            IUnitOfWork unitOfWork)
         {
             _weddingEventRepository = weddingEventRepository;
+            _organizerRepository = organizerRepository;
             _unitOfWork = unitOfWork;
         }
 
@@ -32,6 +38,19 @@ namespace MyWedding.Application.Features.Events.Commands.CreateEvent
             };
 
             await _weddingEventRepository.AddAsync(newEvent, cancellationToken);
+
+            // Automatically add creator as owner-level organizer
+            var ownerAsOrganizer = new EventOrganizer
+            {
+                EventId = newEvent.Id,
+                UserId = request.UserId,
+                Role = OrganizerRole.Bride,
+                PermissionLevel = PermissionLevel.Owner,
+                JoinedAt = DateTime.UtcNow
+            };
+
+            await _organizerRepository.AddAsync(ownerAsOrganizer, cancellationToken);
+
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return newEvent.Id;

@@ -29,7 +29,8 @@ namespace MyWedding.Application.Features.EventOrganizers.Commands.InviteUserToEv
         {
             // 1. Security Check: Does the person sending the invite have permission?
             var inviter = await _organizerRepository.GetOrganizerAsync(request.EventId, request.InviterUserId, cancellationToken);
-            if (inviter is null || inviter.PermissionLevel < Domain.Enums.PermissionLevel.Editor)
+            // Allow only Editor or Owner to invite; avoid numeric enum comparison pitfalls
+            if (inviter is null || (inviter.PermissionLevel != Domain.Enums.PermissionLevel.Editor && inviter.PermissionLevel != Domain.Enums.PermissionLevel.Owner))
             {
                 throw new ForbiddenAccessException("You do not have permission to invite members to this event.");
             }
@@ -39,6 +40,12 @@ namespace MyWedding.Application.Features.EventOrganizers.Commands.InviteUserToEv
             if (invitee is null)
             {
                 throw new NotFoundException($"User with email '{request.InviteeEmail}' was not found.");
+            }
+
+            // 2.1 Prevent inviting yourself
+            if (inviter.UserId == invitee.Id)
+            {
+                throw new InvalidOperationException("You cannot invite yourself to the event.");
             }
 
             // 3. Check if the user is already a member of this event

@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Interfaces;
 using System;
+using System.Collections.Generic; // <-- ADD THIS
+using System.Linq;                // <-- ADD THIS
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -25,13 +27,26 @@ namespace MyWedding.Infrastructure.Persistence.Repositories
         public async Task<bool> IsUserAlreadyOrganizerAsync(Guid eventId, string userId, CancellationToken cancellationToken = default)
         {
             return await _context.EventOrganizers
+                .AsNoTracking()
                 .AnyAsync(o => o.EventId == eventId && o.UserId == userId, cancellationToken);
         }
-
+        
         public async Task<EventOrganizer?> GetOrganizerAsync(Guid eventId, string userId, CancellationToken cancellationToken = default)
         {
             return await _context.EventOrganizers
+                .AsNoTracking()
                 .FirstOrDefaultAsync(o => o.EventId == eventId && o.UserId == userId, cancellationToken);
+        }
+
+        // --- NEW IMPLEMENTATION ---
+        public async Task<IEnumerable<EventOrganizer>> GetOrganizersByEventIdAsync(Guid eventId, CancellationToken cancellationToken = default)
+        {
+            // Use .Include() to perform a JOIN and fetch the related User details
+            return await _context.EventOrganizers
+                .Include(o => o.User)
+                .Where(o => o.EventId == eventId)
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
         }
     }
 }
