@@ -1,9 +1,13 @@
+// File: src/Presentation/MyWedding.API/Controllers/AuthController.cs
+
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MyWedding.Application.Features.Users.Commands.SyncUser;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using FirebaseAdmin;
+using FirebaseAdmin.Auth;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -22,17 +26,49 @@ public class AuthController : ControllerBase
     {
         var firebaseUid = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var email = User.FindFirstValue(ClaimTypes.Email);
-        var name = User.FindFirstValue("name") ?? ""; // Firebase often sends name in this claim
-
-        // Basic name splitting, can be improved on the frontend
-        var nameParts = name.Split(' ', 2);
-        var firstName = nameParts.Length > 0 ? nameParts[0] : "User";
-        var lastName = nameParts.Length > 1 ? nameParts[1] : "";
-
 
         if (string.IsNullOrEmpty(firebaseUid) || string.IsNullOrEmpty(email))
         {
             return BadRequest("Invalid token claims.");
+        }
+
+        // --- BULLETPROOF FIX ---
+        UserRecord? userRecord = null;
+        var displayName = "";
+
+        if (FirebaseApp.DefaultInstance != null)
+        {
+            try
+            {
+                userRecord = await FirebaseAuth.DefaultInstance.GetUserAsync(firebaseUid);
+                displayName = userRecord?.DisplayName ?? "";
+            }
+            catch (FirebaseAuthException)
+            {
+                displayName = User.FindFirstValue("name") ?? "";
+            }
+        }
+        else
+        {
+            Console.WriteLine("ERROR: FirebaseApp.DefaultInstance is null. SDK may not be initialized.");
+            displayName = User.FindFirstValue("name") ?? "";
+        }
+        // --- END OF FIX ---
+
+        string firstName;
+        string lastName;
+        
+        var nameParts = displayName.Trim().Split(' ', 2);
+        
+        if (nameParts.Length > 1)
+        {
+            firstName = nameParts[0];
+            lastName = nameParts[1];
+        }
+        else
+        {
+            firstName = nameParts.Length > 0 ? nameParts[0] : "User";
+            lastName = "";
         }
 
         var command = new SyncUserCommand
