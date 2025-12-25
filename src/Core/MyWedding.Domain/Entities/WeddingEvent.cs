@@ -8,6 +8,7 @@ namespace MyWedding.Domain.Entities
         public Guid Id { get; set; } // A unique ID for the event itself
         public required string EventName { get; set; }
         public DateTime EventDate { get; set; }
+        public decimal TotalBudget { get; set; }
 
         // Foreign Key to the User who created the event
         public required string CreatedById { get; set; }

@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MyWedding.Application.Features.Events.Commands.CreateEvent;
+using MyWedding.Application.Features.Events.Commands.SetTotalBudget;
 using MyWedding.Application.Features.Events.Queries.GetEventById;
 using MyWedding.Application.Features.Events.Queries.GetEventsByUserId;
 using System;
@@ -72,7 +73,26 @@ public class EventsController : ControllerBase
 
         return Ok(result);
     }
+
+    // --- NEW ENDPOINT ---
+    [HttpPut("{eventId:guid}/budget")]
+    public async Task<IActionResult> SetTotalBudget(Guid eventId, [FromBody] SetTotalBudgetRequest request)
+    {
+        // TODO: Add security check to ensure user has 'Editor' or 'Owner' permissions
+        var command = new SetTotalBudgetCommand
+        {
+            EventId = eventId,
+            TotalBudget = request.TotalBudget
+        };
+
+        await _mediator.Send(command);
+
+        return NoContent(); // 204 No Content is the standard response for a successful PUT
+    }
 }
 
 // This is a simple DTO (Data Transfer Object) for the request body
 public record CreateEventRequest(string EventName, DateTime EventDate);
+
+// --- NEW DTO FOR THE NEW ENDPOINT ---
+public record SetTotalBudgetRequest(decimal TotalBudget);
