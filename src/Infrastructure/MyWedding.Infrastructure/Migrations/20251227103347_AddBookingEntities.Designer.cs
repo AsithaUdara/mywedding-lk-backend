@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MyWedding.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using MyWedding.Infrastructure.Persistence;
 namespace MyWedding.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251227103347_AddBookingEntities")]
+    partial class AddBookingEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -384,7 +387,9 @@ namespace MyWedding.Infrastructure.Migrations
                 {
                     b.HasOne("MyWedding.Domain.Entities.VendorBooking", "VendorBooking")
                         .WithOne("BookingContract")
-                        .HasForeignKey("MyWedding.Domain.Entities.BookingContract", "Id");
+                        .HasForeignKey("MyWedding.Domain.Entities.BookingContract", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("VendorBooking");
                 });
