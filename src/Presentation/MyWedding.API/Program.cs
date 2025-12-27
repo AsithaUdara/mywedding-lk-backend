@@ -46,6 +46,7 @@ builder.Services.AddScoped<IEventOrganizerRepository, EventOrganizerRepository>(
 builder.Services.AddScoped<IEventTaskRepository, EventTaskRepository>();
 builder.Services.AddScoped<IBudgetCategoryRepository, BudgetCategoryRepository>();
 builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
+builder.Services.AddScoped<IVendorRepository, VendorRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>()); // <-- FIXED LINE
 
 // 5. Initialize Firebase Admin SDK

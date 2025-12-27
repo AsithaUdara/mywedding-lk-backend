@@ -16,6 +16,12 @@ namespace MyWedding.Infrastructure.Persistence
         public DbSet<EventTask> EventTasks { get; set; }
         public DbSet<BudgetCategory> BudgetCategories { get; set; }
         public DbSet<Expense> Expenses { get; set; }
+        
+        // Vendor Management DbSets
+        public DbSet<Vendor> Vendors { get; set; }
+        public DbSet<VendorCategory> VendorCategories { get; set; }
+        public DbSet<VendorService> VendorServices { get; set; }
+        public DbSet<VendorReview> VendorReviews { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -67,13 +73,72 @@ namespace MyWedding.Infrastructure.Persistence
                 .HasForeignKey(e => e.BudgetCategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Decimal precision for financial values
+            // ========== VENDOR MANAGEMENT RELATIONSHIPS ==========
+
+            // Vendor: Primary key is UserId (1-to-1 with User)
+            modelBuilder.Entity<Vendor>()
+                .HasKey(v => v.UserId);
+
+            // Vendor -> User (1-to-1, cascade delete vendor when user is deleted)
+            modelBuilder.Entity<Vendor>()
+                .HasOne(v => v.User)
+                .WithOne()
+                .HasForeignKey<Vendor>(v => v.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // VendorService -> Vendor (Many-to-One, cascade delete services when vendor is deleted)
+            modelBuilder.Entity<VendorService>()
+                .HasOne(vs => vs.Vendor)
+                .WithMany(v => v.Services)
+                .HasForeignKey(vs => vs.VendorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // VendorService -> VendorCategory (Many-to-One, restrict delete when referenced)
+            modelBuilder.Entity<VendorService>()
+                .HasOne(vs => vs.Category)
+                .WithMany()
+                .HasForeignKey(vs => vs.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // VendorReview -> Vendor (Many-to-One, cascade delete reviews when vendor is deleted)
+            modelBuilder.Entity<VendorReview>()
+                .HasOne(vr => vr.Vendor)
+                .WithMany(v => v.Reviews)
+                .HasForeignKey(vr => vr.VendorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // VendorReview -> User/Reviewer (Many-to-One, restrict delete when referenced)
+            modelBuilder.Entity<VendorReview>()
+                .HasOne(vr => vr.Reviewer)
+                .WithMany()
+                .HasForeignKey(vr => vr.ReviewerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // VendorReview -> WeddingEvent (Many-to-One, cascade delete reviews when event is deleted)
+            modelBuilder.Entity<VendorReview>()
+                .HasOne(vr => vr.WeddingEvent)
+                .WithMany()
+                .HasForeignKey(vr => vr.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ========== DECIMAL PRECISION CONFIGURATION ==========
+
+            // Financial values
             modelBuilder.Entity<Expense>()
                 .Property(e => e.Amount)
                 .HasColumnType("decimal(18,2)");
 
             modelBuilder.Entity<WeddingEvent>()
                 .Property(e => e.TotalBudget)
+                .HasColumnType("decimal(18,2)");
+
+            // Vendor financial values
+            modelBuilder.Entity<Vendor>()
+                .Property(v => v.AverageRating)
+                .HasColumnType("decimal(3,2)");
+
+            modelBuilder.Entity<VendorService>()
+                .Property(vs => vs.BasePrice)
                 .HasColumnType("decimal(18,2)");
         }
     }
