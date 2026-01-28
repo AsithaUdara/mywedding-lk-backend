@@ -3,5 +3,11 @@ using System;
 
 namespace MyWedding.Application.Features.Events.Queries.GetEventById
 {
-    public record EventDto(Guid Id, string EventName, DateTime EventDate, string CreatedById);
+    public record EventDto(
+        Guid Id, 
+        string EventName, 
+        DateTime EventDate, 
+        string CreatedById,
+        decimal TotalBudget,
+        string? StylePreferences);
 }

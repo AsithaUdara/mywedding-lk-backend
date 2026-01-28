@@ -22,6 +22,8 @@ namespace MyWedding.Infrastructure.Persistence
         public DbSet<VendorCategory> VendorCategories { get; set; }
         public DbSet<VendorService> VendorServices { get; set; }
         public DbSet<VendorReview> VendorReviews { get; set; }
+        public DbSet<VendorBooking> VendorBookings { get; set; }
+        public DbSet<BookingContract> BookingContracts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -121,6 +123,36 @@ namespace MyWedding.Infrastructure.Persistence
                 .HasForeignKey(vr => vr.EventId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // ========== BOOKING & CONTRACT RELATIONSHIPS ==========
+
+            // VendorBooking -> WeddingEvent (Many-to-One)
+            modelBuilder.Entity<VendorBooking>()
+                .HasOne(b => b.WeddingEvent)
+                .WithMany()
+                .HasForeignKey(b => b.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // VendorBooking -> VendorService (Many-to-One, restrict delete when referenced)
+            modelBuilder.Entity<VendorBooking>()
+                .HasOne(b => b.VendorService)
+                .WithMany()
+                .HasForeignKey(b => b.ServiceId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // VendorBooking -> User (BookedBy, Many-to-One, restrict delete)
+            modelBuilder.Entity<VendorBooking>()
+                .HasOne(b => b.BookedBy)
+                .WithMany()
+                .HasForeignKey(b => b.BookedById)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // One-to-one: VendorBooking <-> BookingContract (PK of contract is FK to booking, contract optional at creation)
+            modelBuilder.Entity<VendorBooking>()
+                .HasOne(b => b.BookingContract)
+                .WithOne(c => c.VendorBooking)
+                .HasForeignKey<BookingContract>(c => c.Id)
+                .IsRequired(false);
+
             // ========== DECIMAL PRECISION CONFIGURATION ==========
 
             // Financial values
@@ -139,6 +171,11 @@ namespace MyWedding.Infrastructure.Persistence
 
             modelBuilder.Entity<VendorService>()
                 .Property(vs => vs.BasePrice)
+                .HasColumnType("decimal(18,2)");
+
+            // Booking financial values
+            modelBuilder.Entity<VendorBooking>()
+                .Property(b => b.FinalAmount)
                 .HasColumnType("decimal(18,2)");
         }
     }

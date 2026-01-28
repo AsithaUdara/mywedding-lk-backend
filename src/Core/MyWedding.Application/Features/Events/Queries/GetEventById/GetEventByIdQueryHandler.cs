@@ -29,7 +29,9 @@ namespace MyWedding.Application.Features.Events.Queries.GetEventById
                 weddingEvent.Id,
                 weddingEvent.EventName,
                 weddingEvent.EventDate,
-                weddingEvent.CreatedById);
+                weddingEvent.CreatedById,
+                weddingEvent.TotalBudget,
+                weddingEvent.StylePreferences);
         }
     }
 }
