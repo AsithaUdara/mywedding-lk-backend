@@ -29,7 +29,7 @@ namespace MyWedding.Application.Features.Events.Commands.SetEventPreferences
         {
             // 1. Security Check: Does the user have permission to edit this event?
             var organizer = await _organizerRepository.GetOrganizerAsync(request.EventId, request.UserId, cancellationToken);
-            if (organizer is null || organizer.PermissionLevel < Domain.Enums.PermissionLevel.Editor)
+            if (organizer is null || organizer.PermissionLevel > Domain.Enums.PermissionLevel.Editor)
             {
                 throw new ForbiddenAccessException("You do not have permission to edit this event's preferences.");
             }
