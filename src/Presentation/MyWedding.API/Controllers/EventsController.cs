@@ -3,10 +3,12 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MyWedding.Application.Features.Events.Commands.CreateEvent;
+using MyWedding.Application.Features.Events.Commands.SetEventPreferences;
 using MyWedding.Application.Features.Events.Commands.SetTotalBudget;
 using MyWedding.Application.Features.Events.Queries.GetEventById;
 using MyWedding.Application.Features.Events.Queries.GetEventsByUserId;
 using System;
+using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -88,6 +90,28 @@ public class EventsController : ControllerBase
         await _mediator.Send(command);
 
         return NoContent(); // 204 No Content is the standard response for a successful PUT
+    }
+
+    // --- STYLE PREFERENCES ENDPOINT ---
+    [HttpPut("{eventId:guid}/preferences")]
+    public async Task<IActionResult> SetStylePreferences(Guid eventId, [FromBody] Dictionary<string, string> preferences)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
+        var command = new SetEventPreferencesCommand
+        {
+            EventId = eventId,
+            UserId = userId,
+            Preferences = preferences
+        };
+
+        await _mediator.Send(command);
+
+        return NoContent(); // 204 No Content is the standard success response for a PUT
     }
 }
 
