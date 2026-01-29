@@ -8,6 +8,7 @@ using MyWedding.Application.Features.Tasks.Commands.UpdateTaskStatus;
 using MyWedding.Application.Features.Tasks.Queries.GetTasksByEventId;
 using MyWedding.Domain.Enums;
 using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace MyWedding.API.Controllers
@@ -55,16 +56,23 @@ namespace MyWedding.API.Controllers
         [HttpPut("api/tasks/{taskId:guid}/status")]
         public async Task<IActionResult> UpdateTaskStatus(Guid taskId, [FromBody] UpdateTaskStatusRequest request)
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
             // TODO: Add security check to ensure user has 'Editor' or 'Owner' permissions
             var command = new UpdateTaskStatusCommand
             {
                 TaskId = taskId,
-                NewStatus = request.NewStatus
+                NewStatus = request.NewStatus,
+                UserId = userId
             };
 
             await _mediator.Send(command);
 
-            return NoContent(); // 204 No Content is a standard successful response for an update
+            return NoContent();
         }
     }
 
