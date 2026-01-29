@@ -27,6 +27,11 @@ namespace MyWedding.Infrastructure.Persistence
         
         // Activity Feed DbSet
         public DbSet<ActivityFeedItem> ActivityFeedItems { get; set; }
+        
+        // Collaboration Hub DbSets
+        public DbSet<Conversation> Conversations { get; set; }
+        public DbSet<Message> Messages { get; set; }
+        public DbSet<MessageReadStatus> MessageReadStatuses { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -193,6 +198,64 @@ namespace MyWedding.Infrastructure.Persistence
                 .WithMany()
                 .HasForeignKey(i => i.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // --- NEW CONFIGURATION FOR COLLABORATION HUB ---
+            
+            // Conversation -> WeddingEvent relationship
+            modelBuilder.Entity<Conversation>()
+                .HasOne(c => c.WeddingEvent)
+                .WithMany() // An event can have many conversations
+                .HasForeignKey(c => c.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Message -> Conversation relationship
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.Conversation)
+                .WithMany(c => c.Messages) // A conversation has a collection of messages
+                .HasForeignKey(m => m.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Message -> User (Sender) relationship
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.Sender)
+                .WithMany() // A user can send many messages
+                .HasForeignKey(m => m.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // "Smart Attachment" relationships (all optional)
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.AttachedVendorService)
+                .WithMany()
+                .HasForeignKey(m => m.AttachedVendorServiceId)
+                .OnDelete(DeleteBehavior.NoAction);
+                
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.AttachedEventTask)
+                .WithMany()
+                .HasForeignKey(m => m.AttachedEventTaskId)
+                .OnDelete(DeleteBehavior.NoAction);
+                
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.AttachedExpense)
+                .WithMany()
+                .HasForeignKey(m => m.AttachedExpenseId)
+                .OnDelete(DeleteBehavior.NoAction);
+            
+            // MessageReadStatus composite key and relationships
+            modelBuilder.Entity<MessageReadStatus>()
+                .HasKey(rs => new { rs.MessageId, rs.UserId });
+                
+            modelBuilder.Entity<MessageReadStatus>()
+                .HasOne(rs => rs.Message)
+                .WithMany(m => m.ReadStatuses)
+                .HasForeignKey(rs => rs.MessageId)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            modelBuilder.Entity<MessageReadStatus>()
+                .HasOne(rs => rs.User)
+                .WithMany()
+                .HasForeignKey(rs => rs.UserId)
+                .OnDelete(DeleteBehavior.NoAction); // Prevents cycles
         }
     }
 }
