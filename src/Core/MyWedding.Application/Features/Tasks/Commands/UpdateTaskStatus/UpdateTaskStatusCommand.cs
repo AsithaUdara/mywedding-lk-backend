@@ -9,5 +9,6 @@ namespace MyWedding.Application.Features.Tasks.Commands.UpdateTaskStatus
     {
         public Guid TaskId { get; init; }
         public DomainTaskStatus NewStatus { get; init; }
+        public required string UserId { get; init; }
     }
 }

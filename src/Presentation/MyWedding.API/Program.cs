@@ -48,7 +48,8 @@ builder.Services.AddScoped<IBudgetCategoryRepository, BudgetCategoryRepository>(
 builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 builder.Services.AddScoped<IVendorRepository, VendorRepository>();
 builder.Services.AddScoped<IVendorBookingRepository, VendorBookingRepository>();
-builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>()); // <-- FIXED LINE
+builder.Services.AddScoped<IActivityFeedRepository, ActivityFeedRepository>();
+builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
 // 5. Initialize Firebase Admin SDK
 builder.Services.InitializeFirebase(builder.Configuration);

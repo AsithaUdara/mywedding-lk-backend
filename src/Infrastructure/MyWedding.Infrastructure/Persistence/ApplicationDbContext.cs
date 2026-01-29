@@ -24,6 +24,9 @@ namespace MyWedding.Infrastructure.Persistence
         public DbSet<VendorReview> VendorReviews { get; set; }
         public DbSet<VendorBooking> VendorBookings { get; set; }
         public DbSet<BookingContract> BookingContracts { get; set; }
+        
+        // Activity Feed DbSet
+        public DbSet<ActivityFeedItem> ActivityFeedItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -177,6 +180,19 @@ namespace MyWedding.Infrastructure.Persistence
             modelBuilder.Entity<VendorBooking>()
                 .Property(b => b.FinalAmount)
                 .HasColumnType("decimal(18,2)");
+
+            // --- NEW CONFIGURATION FOR ACTIVITYFEEDITEM ---
+            modelBuilder.Entity<ActivityFeedItem>()
+                .HasOne(i => i.WeddingEvent)
+                .WithMany()
+                .HasForeignKey(i => i.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ActivityFeedItem>()
+                .HasOne(i => i.User)
+                .WithMany()
+                .HasForeignKey(i => i.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }
