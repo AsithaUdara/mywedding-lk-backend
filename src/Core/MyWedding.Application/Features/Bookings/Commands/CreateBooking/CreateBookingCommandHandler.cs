@@ -41,21 +41,18 @@ namespace MyWedding.Application.Features.Bookings.Commands.CreateBooking
         {
             _logger.LogInformation("Attempting to create booking for EventId: {EventId} by UserId: {UserId}", request.EventId, request.UserId);
 
-            // --- IMPROVED SECURITY CHECK ---
+            // --- STRICT SECURITY CHECK: Only Owner can book ---
             var weddingEvent = await _eventRepository.GetByIdAsync(request.EventId, cancellationToken);
             if (weddingEvent is null)
             {
                 throw new NotFoundException($"Event with ID {request.EventId} not found.");
             }
 
-            var isCreator = weddingEvent.CreatedById == request.UserId;
-            var organizer = await _organizerRepository.GetOrganizerAsync(request.EventId, request.UserId, cancellationToken);
-            var hasPermission = isCreator || (organizer != null && organizer.PermissionLevel >= Domain.Enums.PermissionLevel.Editor);
-
-            if (!hasPermission)
+            // Only the creator (Owner) is allowed to initiate a booking
+            if (weddingEvent.CreatedById != request.UserId)
             {
-                _logger.LogWarning("Forbidden access: UserId {UserId} does not have permission to book for EventId {EventId}", request.UserId, request.EventId);
-                throw new ForbiddenAccessException("You do not have permission to make bookings for this event.");
+                _logger.LogWarning("Forbidden: UserId {UserId} attempted to book for EventId {EventId} but is NOT the owner.", request.UserId, request.EventId);
+                throw new ForbiddenAccessException("Only the Event Owner has the authority to book vendors.");
             }
             // --- END OF SECURITY CHECK ---
 

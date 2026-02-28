@@ -12,34 +12,35 @@ namespace MyWedding.Application.Features.Expenses.Commands.AddExpense
     public class AddExpenseCommandHandler : IRequestHandler<AddExpenseCommand, Guid>
     {
         private readonly IExpenseRepository _expenseRepository;
-        private readonly IBudgetCategoryRepository _categoryRepository; // Need this to validate category
-        private readonly IWeddingEventRepository _eventRepository;    // Need this to validate event exists
+        private readonly IBudgetCategoryRepository _categoryRepository; 
+        private readonly IWeddingEventRepository _eventRepository;    
+        private readonly IActivityFeedRepository _activityFeedRepository;
         private readonly IUnitOfWork _unitOfWork;
 
         public AddExpenseCommandHandler(
             IExpenseRepository expenseRepository,
             IBudgetCategoryRepository categoryRepository,
             IWeddingEventRepository eventRepository,
+            IActivityFeedRepository activityFeedRepository,
             IUnitOfWork unitOfWork)
         {
             _expenseRepository = expenseRepository;
             _categoryRepository = categoryRepository;
             _eventRepository = eventRepository;
+            _activityFeedRepository = activityFeedRepository;
             _unitOfWork = unitOfWork;
         }
 
         public async Task<Guid> Handle(AddExpenseCommand request, CancellationToken cancellationToken)
         {
             // --- VALIDATIONS ---
-            // Check if the event exists
             var weddingEvent = await _eventRepository.GetByIdAsync(request.EventId, cancellationToken);
             if (weddingEvent is null)
             {
                 throw new NotFoundException($"Wedding event with ID '{request.EventId}' not found.");
             }
 
-            // Check if the budget category is valid
-            var categoryExists = await _categoryRepository.ExistsAsync(request.BudgetCategoryId, cancellationToken); // Assuming this method exists or will be added
+            var categoryExists = await _categoryRepository.ExistsAsync(request.BudgetCategoryId, cancellationToken); 
             if (!categoryExists)
             {
                 throw new NotFoundException($"Budget category with ID '{request.BudgetCategoryId}' not found.");
@@ -59,6 +60,19 @@ namespace MyWedding.Application.Features.Expenses.Commands.AddExpense
             };
 
             await _expenseRepository.AddAsync(newExpense, cancellationToken);
+
+            // Log activity: User added an expense
+            var activityItem = new ActivityFeedItem
+            {
+                Id = Guid.NewGuid(),
+                EventId = request.EventId,
+                UserId = request.UserId, // Assuming request contains UserId
+                ItemType = MyWedding.Domain.Enums.ActivityType.SystemLog,
+                Content = $"added a new expense: \"{request.Title}\" for {request.Amount:N2}",
+                CreatedAt = DateTime.UtcNow
+            };
+            await _activityFeedRepository.AddAsync(activityItem, cancellationToken);
+
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return newExpense.Id;

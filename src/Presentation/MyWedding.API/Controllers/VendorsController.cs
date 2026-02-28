@@ -1,9 +1,10 @@
-// File: src/Presentation/MyWedding.API/Controllers/VendorsController.cs
-
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using MyWedding.Application.Features.Vendors.Queries.GetVendorById;
 using MyWedding.Application.Features.Vendors.Queries.GetVendors;
+using MyWedding.Application.Features.Vendors.Commands.RegisterVendor;
+using System;
+using System.Threading.Tasks;
 
 namespace MyWedding.API.Controllers
 {
@@ -19,11 +20,9 @@ namespace MyWedding.API.Controllers
         }
 
         // GET /api/vendors
-        // GET /api/vendors?category=Photography&location=Colombo
         [HttpGet]
         public async Task<IActionResult> GetVendors([FromQuery] GetVendorsQuery query)
         {
-            // We pass the entire query object (which includes Category and Location) to MediatR
             var vendors = await _mediator.Send(query);
             return Ok(vendors);
         }
@@ -36,6 +35,21 @@ namespace MyWedding.API.Controllers
             var vendor = await _mediator.Send(query);
 
             return vendor is not null ? Ok(vendor) : NotFound();
+        }
+
+        // POST /api/vendors/register
+        [HttpPost("register")]
+        public async Task<IActionResult> RegisterVendor([FromBody] RegisterVendorCommand command)
+        {
+            try 
+            {
+                await _mediator.Send(command);
+                return Ok(new { success = true, vendorId = command.UserId });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message, detail = ex.InnerException?.Message });
+            }
         }
     }
 }

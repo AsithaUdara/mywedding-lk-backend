@@ -17,8 +17,13 @@ namespace MyWedding.Domain.Entities
         public VerificationStatus VerificationStatus { get; set; }
         public decimal AverageRating { get; set; } // This is a derived/calculated field
 
+        // New: Primary Service Category
+        public Guid? PrimaryCategoryId { get; set; }
+        public VendorCategory? PrimaryCategory { get; set; }
+
         // Navigation Properties
         public ICollection<VendorService> Services { get; set; } = new List<VendorService>();
         public ICollection<VendorReview> Reviews { get; set; } = new List<VendorReview>();
+        public ICollection<VendorBooking> Bookings { get; set; } = new List<VendorBooking>();
     }
 }

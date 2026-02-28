@@ -10,6 +10,7 @@ namespace MyWedding.Application.Features.Expenses.Commands.AddExpense
         public required string Title { get; init; }
         public decimal Amount { get; init; }
         public DateTime ExpenseDate { get; init; }
-        public Guid BudgetCategoryId { get; init; } // Link to the category
+        public Guid BudgetCategoryId { get; init; }
+        public required string UserId { get; init; }
     }
 }

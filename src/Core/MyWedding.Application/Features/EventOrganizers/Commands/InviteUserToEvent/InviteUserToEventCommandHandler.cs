@@ -13,15 +13,18 @@ namespace MyWedding.Application.Features.EventOrganizers.Commands.InviteUserToEv
     {
         private readonly IEventOrganizerRepository _organizerRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IActivityFeedRepository _activityFeedRepository;
         private readonly IUnitOfWork _unitOfWork;
 
         public InviteUserToEventCommandHandler(
             IEventOrganizerRepository organizerRepository,
             IUserRepository userRepository,
+            IActivityFeedRepository activityFeedRepository,
             IUnitOfWork unitOfWork)
         {
             _organizerRepository = organizerRepository;
             _userRepository = userRepository;
+            _activityFeedRepository = activityFeedRepository;
             _unitOfWork = unitOfWork;
         }
 
@@ -29,7 +32,6 @@ namespace MyWedding.Application.Features.EventOrganizers.Commands.InviteUserToEv
         {
             // 1. Security Check: Does the person sending the invite have permission?
             var inviter = await _organizerRepository.GetOrganizerAsync(request.EventId, request.InviterUserId, cancellationToken);
-            // Allow only Editor or Owner to invite; avoid numeric enum comparison pitfalls
             if (inviter is null || (inviter.PermissionLevel != Domain.Enums.PermissionLevel.Editor && inviter.PermissionLevel != Domain.Enums.PermissionLevel.Owner))
             {
                 throw new ForbiddenAccessException("You do not have permission to invite members to this event.");
@@ -42,7 +44,6 @@ namespace MyWedding.Application.Features.EventOrganizers.Commands.InviteUserToEv
                 throw new NotFoundException($"User with email '{request.InviteeEmail}' was not found.");
             }
 
-            // 2.1 Prevent inviting yourself
             if (inviter.UserId == invitee.Id)
             {
                 throw new InvalidOperationException("You cannot invite yourself to the event.");
@@ -52,7 +53,6 @@ namespace MyWedding.Application.Features.EventOrganizers.Commands.InviteUserToEv
             var isAlreadyMember = await _organizerRepository.IsUserAlreadyOrganizerAsync(request.EventId, invitee.Id, cancellationToken);
             if (isAlreadyMember)
             {
-                // Using a general exception here is fine, or you could create a ValidationException
                 throw new InvalidOperationException("This user is already a member of the event.");
             }
 
@@ -66,12 +66,22 @@ namespace MyWedding.Application.Features.EventOrganizers.Commands.InviteUserToEv
                 JoinedAt = DateTime.UtcNow
             };
 
-            // 5. Add to the database and save
+            // 5. Add to the database
             await _organizerRepository.AddAsync(newOrganizer, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            // 6. (Future Step) Send an invitation email to the invitee
-            // await _emailService.SendInvitationEmailAsync(invitee.Email, ...);
+            // 6. Log activity: User was invited to the team
+            var activityItem = new ActivityFeedItem
+            {
+                Id = Guid.NewGuid(),
+                EventId = request.EventId,
+                UserId = request.InviterUserId,
+                ItemType = Domain.Enums.ActivityType.SystemLog,
+                Content = $"invited {invitee.FirstName} to the planning team",
+                CreatedAt = DateTime.UtcNow
+            };
+            await _activityFeedRepository.AddAsync(activityItem, cancellationToken);
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
     }
 }
