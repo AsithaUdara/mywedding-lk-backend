@@ -32,21 +32,19 @@ namespace MyWedding.Infrastructure.Persistence.Repositories
 
         public async Task<IEnumerable<Vendor>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            // This method will perform the filtering and sorting on the DATABASE side
-            // For now, it returns all vendors, but it's ready for query parameters
+            // Implementation...
             IQueryable<Vendor> query = _context.Vendors
                 .Include(v => v.User)
                 .Include(v => v.Services)
                     .ThenInclude(s => s.Category)
                 .AsNoTracking();
 
-            // Example of how backend filtering will work (we will use this in the Application layer later)
-            // if (!string.IsNullOrEmpty(categoryFilter))
-            // {
-            //     query = query.Where(v => v.Services.Any(s => s.Category.Name == categoryFilter));
-            // }
-
             return await query.ToListAsync(cancellationToken);
+        }
+
+        public async Task AddAsync(Vendor vendor, CancellationToken cancellationToken = default)
+        {
+            await _context.Vendors.AddAsync(vendor, cancellationToken);
         }
     }
 }

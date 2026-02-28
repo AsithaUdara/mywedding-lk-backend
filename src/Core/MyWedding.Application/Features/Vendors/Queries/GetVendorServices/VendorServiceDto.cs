@@ -1,23 +1,18 @@
+// File: src/Core/MyWedding.Application/Features/Vendors/Queries/GetVendorServices/VendorServiceDto.cs
 using MyWedding.Domain.Enums;
 using System;
 
-namespace MyWedding.Domain.Entities
+namespace MyWedding.Application.Features.Vendors.Queries.GetVendorServices
 {
-    public class VendorService
+    public class VendorServiceDto
     {
         public Guid Id { get; set; }
         public required string ServiceName { get; set; }
         public string? ServiceDescription { get; set; }
         public decimal BasePrice { get; set; }
         public PricingType PricingType { get; set; }
-        public bool IsActive { get; set; } = true;
-        
-        // Foreign Key to Vendor
-        public required string VendorId { get; set; }
-        public Vendor? Vendor { get; set; }
-
-        // Foreign Key to VendorCategory
+        public required string CategoryName { get; set; }
         public Guid CategoryId { get; set; }
-        public VendorCategory? Category { get; set; }
+        public bool IsActive { get; set; }
     }
 }

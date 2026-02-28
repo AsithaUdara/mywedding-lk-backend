@@ -16,17 +16,24 @@ using System.Threading.Tasks;
 public class BudgetController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly MyWedding.Domain.Interfaces.IEventOrganizerRepository _organizerRepository;
 
-    public BudgetController(IMediator mediator)
+    public BudgetController(IMediator mediator, MyWedding.Domain.Interfaces.IEventOrganizerRepository organizerRepository)
     {
         _mediator = mediator;
+        _organizerRepository = organizerRepository;
     }
 
     // GET /api/events/{eventId}/budget
     [HttpGet("api/events/{eventId:guid}/budget")]
     public async Task<IActionResult> GetBudgetOverview(Guid eventId)
     {
-        // TODO: Add security check to ensure user is an organizer of this event
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var isMember = await _organizerRepository.IsUserAlreadyOrganizerAsync(eventId, userId);
+        if (!isMember) return Forbid();
+
         var query = new GetBudgetOverviewQuery { EventId = eventId };
         var result = await _mediator.Send(query);
         return result is not null ? Ok(result) : NotFound();
@@ -36,14 +43,17 @@ public class BudgetController : ControllerBase
     [HttpPost("api/events/{eventId:guid}/expenses")]
     public async Task<IActionResult> AddExpense(Guid eventId, [FromBody] AddExpenseRequest request)
     {
-        // TODO: Add security check to ensure user has 'Editor' or 'Owner' permissions
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
         var command = new AddExpenseCommand
         {
             EventId = eventId,
             Title = request.Title,
             Amount = request.Amount,
             ExpenseDate = request.ExpenseDate,
-            BudgetCategoryId = request.BudgetCategoryId
+            BudgetCategoryId = request.BudgetCategoryId,
+            UserId = userId
         };
 
         var expenseId = await _mediator.Send(command);

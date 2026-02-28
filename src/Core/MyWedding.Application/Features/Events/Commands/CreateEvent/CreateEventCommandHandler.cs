@@ -13,15 +13,18 @@ namespace MyWedding.Application.Features.Events.Commands.CreateEvent
     {
         private readonly IWeddingEventRepository _weddingEventRepository;
         private readonly IEventOrganizerRepository _organizerRepository;
+        private readonly IConversationRepository _conversationRepository;
         private readonly IUnitOfWork _unitOfWork;
 
         public CreateEventCommandHandler(
             IWeddingEventRepository weddingEventRepository,
             IEventOrganizerRepository organizerRepository,
+            IConversationRepository conversationRepository,
             IUnitOfWork unitOfWork)
         {
             _weddingEventRepository = weddingEventRepository;
             _organizerRepository = organizerRepository;
+            _conversationRepository = conversationRepository;
             _unitOfWork = unitOfWork;
         }
 
@@ -50,6 +53,25 @@ namespace MyWedding.Application.Features.Events.Commands.CreateEvent
             };
 
             await _organizerRepository.AddAsync(ownerAsOrganizer, cancellationToken);
+
+            // Auto-create default conversation channels for collaboration
+            var generalChannel = new Conversation
+            {
+                Id = Guid.NewGuid(),
+                Name = "general",
+                EventId = newEvent.Id,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _conversationRepository.AddAsync(generalChannel, cancellationToken);
+
+            var planningChannel = new Conversation
+            {
+                Id = Guid.NewGuid(),
+                Name = "planning",
+                EventId = newEvent.Id,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _conversationRepository.AddAsync(planningChannel, cancellationToken);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 

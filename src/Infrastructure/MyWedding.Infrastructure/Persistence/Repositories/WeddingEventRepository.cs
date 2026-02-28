@@ -31,8 +31,12 @@ namespace MyWedding.Infrastructure.Persistence.Repositories
 
         public async Task<IEnumerable<WeddingEvent>> GetByUserIdAsync(string userId, CancellationToken cancellationToken = default)
         {
-            return await _context.WeddingEvents
-                .Where(e => e.CreatedById == userId)
+            // Retrieve events where the user is an organizer (this includes the creator, as they are added as an organizer too)
+            return await _context.EventOrganizers
+                .AsNoTracking()
+                .Include(eo => eo.WeddingEvent)
+                .Where(eo => eo.UserId == userId)
+                .Select(eo => eo.WeddingEvent!) // null-forgiving operator as Include ensures it's loaded
                 .ToListAsync(cancellationToken);
         }
     }

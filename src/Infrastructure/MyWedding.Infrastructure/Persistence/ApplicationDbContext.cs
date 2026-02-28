@@ -32,6 +32,10 @@ namespace MyWedding.Infrastructure.Persistence
         public DbSet<Conversation> Conversations { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<MessageReadStatus> MessageReadStatuses { get; set; }
+        public DbSet<Poll> Polls { get; set; }
+        public DbSet<PollOption> PollOptions { get; set; }
+        public DbSet<PollVote> PollVotes { get; set; }
+        public DbSet<EventInvitation> EventInvitations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -95,6 +99,13 @@ namespace MyWedding.Infrastructure.Persistence
                 .WithOne()
                 .HasForeignKey<Vendor>(v => v.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Vendor -> PrimaryCategory (Many-to-One, restrict delete)
+            modelBuilder.Entity<Vendor>()
+                .HasOne(v => v.PrimaryCategory)
+                .WithMany()
+                .HasForeignKey(v => v.PrimaryCategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // VendorService -> Vendor (Many-to-One, cascade delete services when vendor is deleted)
             modelBuilder.Entity<VendorService>()
@@ -256,6 +267,45 @@ namespace MyWedding.Infrastructure.Persistence
                 .WithMany()
                 .HasForeignKey(rs => rs.UserId)
                 .OnDelete(DeleteBehavior.NoAction); // Prevents cycles
+
+            // Polls Configuration
+            modelBuilder.Entity<Poll>()
+                .HasOne(p => p.WeddingEvent)
+                .WithMany()
+                .HasForeignKey(p => p.EventId);
+
+            modelBuilder.Entity<PollOption>()
+                .HasOne(po => po.Poll)
+                .WithMany(p => p.Options)
+                .HasForeignKey(po => po.PollId);
+
+            modelBuilder.Entity<PollVote>()
+                .HasOne(pv => pv.PollOption)
+                .WithMany(po => po.Votes)
+                .HasForeignKey(pv => pv.PollOptionId);
+
+            modelBuilder.Entity<PollVote>()
+                .HasOne(pv => pv.User)
+                .WithMany()
+                .HasForeignKey(pv => pv.UserId)
+                .OnDelete(DeleteBehavior.NoAction); // Fix for multiple cascade paths in SQL Server
+
+            // EventInvitation Configuration
+            modelBuilder.Entity<EventInvitation>()
+                .HasOne(i => i.WeddingEvent)
+                .WithMany()
+                .HasForeignKey(i => i.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EventInvitation>()
+                .HasOne(i => i.InvitedBy)
+                .WithMany()
+                .HasForeignKey(i => i.InvitedById)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<EventInvitation>()
+                .HasIndex(i => i.Token)
+                .IsUnique();
         }
     }
 }
