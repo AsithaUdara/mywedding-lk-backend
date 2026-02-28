@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace MyWedding.Application.Features.Vendors.Commands.RegisterVendor
 {
-    public class RegisterVendorCommandHandler : IRequestHandler<RegisterVendorCommand, Guid>
+    public class RegisterVendorCommandHandler : IRequestHandler<RegisterVendorCommand, string>
     {
         private readonly IVendorRepository _vendorRepository;
         private readonly IUserRepository _userRepository;
@@ -28,7 +28,7 @@ namespace MyWedding.Application.Features.Vendors.Commands.RegisterVendor
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<Guid> Handle(RegisterVendorCommand request, CancellationToken cancellationToken)
+        public async Task<string> Handle(RegisterVendorCommand request, CancellationToken cancellationToken)
         {
             // 1. Ensure the user exists in our local DB
             var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
@@ -61,7 +61,7 @@ namespace MyWedding.Application.Features.Vendors.Commands.RegisterVendor
             var existingVendor = await _vendorRepository.GetByIdAsync(request.UserId, cancellationToken);
             if (existingVendor != null)
             {
-                return Guid.Empty;
+                return existingVendor.UserId;
             }
 
             // 4. Create the Vendor record
@@ -96,7 +96,7 @@ namespace MyWedding.Application.Features.Vendors.Commands.RegisterVendor
                 throw new Exception($"Database error during vendor registration: {ex.Message}. Make sure database is seeded.", ex);
             }
 
-            return Guid.Empty; 
+            return vendor.UserId;
         }
     }
 }

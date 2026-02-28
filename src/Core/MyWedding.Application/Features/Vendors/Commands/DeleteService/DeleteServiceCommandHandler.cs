@@ -10,11 +10,16 @@ namespace MyWedding.Application.Features.Vendors.Commands.DeleteService
     public class DeleteServiceCommandHandler : IRequestHandler<DeleteServiceCommand, bool>
     {
         private readonly IVendorServiceRepository _serviceRepository;
+        private readonly IVendorBookingRepository _bookingRepository;
         private readonly IUnitOfWork _unitOfWork;
 
-        public DeleteServiceCommandHandler(IVendorServiceRepository serviceRepository, IUnitOfWork unitOfWork)
+        public DeleteServiceCommandHandler(
+            IVendorServiceRepository serviceRepository, 
+            IVendorBookingRepository bookingRepository,
+            IUnitOfWork unitOfWork)
         {
             _serviceRepository = serviceRepository;
+            _bookingRepository = bookingRepository;
             _unitOfWork = unitOfWork;
         }
 
@@ -24,6 +29,13 @@ namespace MyWedding.Application.Features.Vendors.Commands.DeleteService
             if (service == null)
             {
                 throw new NotFoundException($"Vendor service with ID '{request.Id}' not found.");
+            }
+
+            // Check if there are any bookings for this service
+            var hasBookings = await _bookingRepository.HasBookingsAsync(request.Id, cancellationToken);
+            if (hasBookings)
+            {
+                throw new BadRequestException("This service cannot be deleted because it has existing bookings. You can set it to 'Inactive' instead.");
             }
 
             _serviceRepository.Delete(service);

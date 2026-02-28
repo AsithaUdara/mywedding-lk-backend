@@ -24,7 +24,7 @@ namespace MyWedding.API.Controllers
             _mediator = mediator;
         }
 
-        private string GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         // GET /api/vendor/dashboard/services
         [HttpGet("services")]
@@ -46,6 +46,13 @@ namespace MyWedding.API.Controllers
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
             
             command.VendorId = userId; // Ensure vendor can only add to their own account
+
+            // Fallback for CategoryId if not provided or Guid.Empty
+            if (command.CategoryId == Guid.Empty)
+            {
+                command.CategoryId = Guid.Parse("66666666-6666-6666-6666-666666666666"); // Other
+            }
+
             var result = await _mediator.Send(command);
             return Ok(new { id = result });
         }
@@ -54,6 +61,15 @@ namespace MyWedding.API.Controllers
         [HttpPut("services/{id}")]
         public async Task<IActionResult> UpdateService(Guid id, [FromBody] UpdateServiceCommand command)
         {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            // Fallback for CategoryId if not provided or Guid.Empty
+            if (command.CategoryId == Guid.Empty)
+            {
+                command.CategoryId = Guid.Parse("66666666-6666-6666-6666-666666666666"); // Other
+            }
+
             command.Id = id;
             var result = await _mediator.Send(command);
             return result ? Ok() : NotFound();

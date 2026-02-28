@@ -10,6 +10,7 @@ namespace MyWedding.Domain.Entities
         public string? ServiceDescription { get; set; }
         public decimal BasePrice { get; set; }
         public PricingType PricingType { get; set; }
+        public bool IsActive { get; set; } = true;
         
         // Foreign Key to Vendor
         public required string VendorId { get; set; }

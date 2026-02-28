@@ -31,6 +31,7 @@ namespace MyWedding.Application.Features.Vendors.Commands.UpdateService
             service.BasePrice = request.BasePrice;
             service.PricingType = request.PricingType;
             service.CategoryId = request.CategoryId;
+            service.IsActive = request.IsActive;
 
             _serviceRepository.Update(service);
             await _unitOfWork.SaveChangesAsync(cancellationToken);

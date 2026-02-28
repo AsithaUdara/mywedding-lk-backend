@@ -29,7 +29,8 @@ namespace MyWedding.Application.Features.Vendors.Queries.GetVendorServices
                 BasePrice = s.BasePrice,
                 PricingType = s.PricingType,
                 CategoryId = s.CategoryId,
-                CategoryName = s.Category?.Name ?? "Unknown"
+                CategoryName = s.Category?.Name ?? "Unknown",
+                IsActive = s.IsActive
             });
         }
     }

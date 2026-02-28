@@ -24,7 +24,7 @@ namespace MyWedding.API.Controllers
             _context = context;
         }
 
-        private string GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         // GET /api/polls/event/{eventId}
         [HttpGet("event/{eventId:guid}")]

@@ -13,5 +13,6 @@ namespace MyWedding.Application.Features.Vendors.Queries.GetVendorServices
         public PricingType PricingType { get; set; }
         public required string CategoryName { get; set; }
         public Guid CategoryId { get; set; }
+        public bool IsActive { get; set; }
     }
 }

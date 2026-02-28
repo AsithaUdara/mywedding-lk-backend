@@ -13,5 +13,6 @@ namespace MyWedding.Application.Features.Vendors.Commands.UpdateService
         public decimal BasePrice { get; set; }
         public PricingType PricingType { get; set; }
         public Guid CategoryId { get; set; }
+        public bool IsActive { get; set; }
     }
 }

@@ -1,4 +1,3 @@
-// File: src/Core/MyWedding.Application/Features/Vendors/Commands/AddService/AddServiceCommandHandler.cs
 using MediatR;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Interfaces;
@@ -24,12 +23,13 @@ namespace MyWedding.Application.Features.Vendors.Commands.AddService
             var service = new VendorService
             {
                 Id = Guid.NewGuid(),
-                VendorId = request.VendorId,
+                VendorId = request.VendorId ?? string.Empty,
                 ServiceName = request.ServiceName,
                 ServiceDescription = request.Description,
                 BasePrice = request.BasePrice,
                 PricingType = request.PricingType,
-                CategoryId = request.CategoryId
+                CategoryId = request.CategoryId,
+                IsActive = request.IsActive
             };
 
             await _serviceRepository.AddAsync(service, cancellationToken);

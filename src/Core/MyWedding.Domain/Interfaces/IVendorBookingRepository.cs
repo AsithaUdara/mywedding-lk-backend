@@ -7,6 +7,6 @@ namespace MyWedding.Domain.Interfaces
     public interface IVendorBookingRepository
     {
         Task AddAsync(VendorBooking booking, CancellationToken cancellationToken = default);
-        // We will add Get methods here later as needed
+        Task<bool> HasBookingsAsync(Guid serviceId, CancellationToken cancellationToken = default);
     }
 }

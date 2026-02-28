@@ -4,7 +4,7 @@ using System;
 
 namespace MyWedding.Application.Features.Vendors.Commands.RegisterVendor
 {
-    public class RegisterVendorCommand : IRequest<Guid>
+    public class RegisterVendorCommand : IRequest<string>
     {
         public required string UserId { get; set; }
         public required string Email { get; set; }
