@@ -1,14 +1,14 @@
-// File: src/Presentation/MyWedding.API/Program.cs
-
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using MyWedding.API.Middleware;
 using MyWedding.Application.Features.Users.Commands.SyncUser;
 using MyWedding.Domain.Interfaces;
 using MyWedding.Infrastructure.Authentication;
 using MyWedding.Infrastructure.Persistence;
 using MyWedding.Infrastructure.Persistence.Repositories;
+using System.Reflection;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -89,11 +89,18 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true; // Accept both camelCase and PascalCase from clients
     });
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "MyWedding LK API", Version = "v1" });
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
+});
 
 var app = builder.Build();
 
-// --- Configure the HTTP request pipeline. ---
+// --- HTTP Request Pipeline ---
+app.UseMiddleware<ExceptionMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

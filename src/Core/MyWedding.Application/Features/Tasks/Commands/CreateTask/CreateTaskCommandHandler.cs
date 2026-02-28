@@ -1,4 +1,3 @@
-// File: src/Core/MyWedding.Application/Features/Tasks/Commands/CreateTask/CreateTaskCommandHandler.cs
 using MediatR;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Interfaces;
@@ -12,11 +11,16 @@ namespace MyWedding.Application.Features.Tasks.Commands.CreateTask
     public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, Guid>
     {
         private readonly IEventTaskRepository _taskRepository;
+        private readonly IActivityFeedRepository _activityFeedRepository;
         private readonly IUnitOfWork _unitOfWork;
 
-        public CreateTaskCommandHandler(IEventTaskRepository taskRepository, IUnitOfWork unitOfWork)
+        public CreateTaskCommandHandler(
+            IEventTaskRepository taskRepository, 
+            IActivityFeedRepository activityFeedRepository,
+            IUnitOfWork unitOfWork)
         {
             _taskRepository = taskRepository;
+            _activityFeedRepository = activityFeedRepository;
             _unitOfWork = unitOfWork;
         }
 
@@ -35,6 +39,22 @@ namespace MyWedding.Application.Features.Tasks.Commands.CreateTask
             };
 
             await _taskRepository.AddAsync(newTask, cancellationToken);
+            
+            // Log to Activity Feed
+            if (!string.IsNullOrEmpty(request.UserId))
+            {
+                var activity = new ActivityFeedItem
+                {
+                    Id = Guid.NewGuid(),
+                    EventId = request.EventId,
+                    UserId = request.UserId,
+                    ItemType = MyWedding.Domain.Enums.ActivityType.SystemLog,
+                    Content = $"New task created: \"{request.Title}\"",
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _activityFeedRepository.AddAsync(activity, cancellationToken);
+            }
+
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return newTask.Id;
