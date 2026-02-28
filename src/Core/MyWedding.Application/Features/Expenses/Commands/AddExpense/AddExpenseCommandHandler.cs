@@ -1,4 +1,3 @@
-// File: src/Core/MyWedding.Application/Features/Expenses/Commands/AddExpense/AddExpenseCommandHandler.cs
 using MediatR;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Interfaces;
@@ -14,6 +13,7 @@ namespace MyWedding.Application.Features.Expenses.Commands.AddExpense
         private readonly IExpenseRepository _expenseRepository;
         private readonly IBudgetCategoryRepository _categoryRepository; 
         private readonly IWeddingEventRepository _eventRepository;    
+        private readonly IEventOrganizerRepository _organizerRepository;
         private readonly IActivityFeedRepository _activityFeedRepository;
         private readonly IUnitOfWork _unitOfWork;
 
@@ -21,12 +21,14 @@ namespace MyWedding.Application.Features.Expenses.Commands.AddExpense
             IExpenseRepository expenseRepository,
             IBudgetCategoryRepository categoryRepository,
             IWeddingEventRepository eventRepository,
+            IEventOrganizerRepository organizerRepository,
             IActivityFeedRepository activityFeedRepository,
             IUnitOfWork unitOfWork)
         {
             _expenseRepository = expenseRepository;
             _categoryRepository = categoryRepository;
             _eventRepository = eventRepository;
+            _organizerRepository = organizerRepository;
             _activityFeedRepository = activityFeedRepository;
             _unitOfWork = unitOfWork;
         }
@@ -38,6 +40,13 @@ namespace MyWedding.Application.Features.Expenses.Commands.AddExpense
             if (weddingEvent is null)
             {
                 throw new NotFoundException($"Wedding event with ID '{request.EventId}' not found.");
+            }
+
+            // --- SECURITY CHECK ---
+            var organizer = await _organizerRepository.GetOrganizerAsync(request.EventId, request.UserId, cancellationToken);
+            if (organizer == null || organizer.PermissionLevel == MyWedding.Domain.Enums.PermissionLevel.Viewer)
+            {
+                throw new ForbiddenAccessException("You do not have permission to add expenses to this event.");
             }
 
             var categoryExists = await _categoryRepository.ExistsAsync(request.BudgetCategoryId, cancellationToken); 

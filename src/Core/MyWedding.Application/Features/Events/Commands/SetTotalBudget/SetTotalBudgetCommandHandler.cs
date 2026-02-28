@@ -11,21 +11,36 @@ namespace MyWedding.Application.Features.Events.Commands.SetTotalBudget
     public class SetTotalBudgetCommandHandler : IRequestHandler<SetTotalBudgetCommand>
     {
         private readonly IWeddingEventRepository _weddingEventRepository;
+        private readonly IEventOrganizerRepository _organizerRepository;
         private readonly IActivityFeedRepository _activityFeedRepository;
         private readonly IUnitOfWork _unitOfWork;
 
         public SetTotalBudgetCommandHandler(
             IWeddingEventRepository weddingEventRepository, 
+            IEventOrganizerRepository organizerRepository,
             IActivityFeedRepository activityFeedRepository,
             IUnitOfWork unitOfWork)
         {
             _weddingEventRepository = weddingEventRepository;
+            _organizerRepository = organizerRepository;
             _activityFeedRepository = activityFeedRepository;
             _unitOfWork = unitOfWork;
         }
 
         public async Task Handle(SetTotalBudgetCommand request, CancellationToken cancellationToken)
         {
+            // --- SECURITY CHECK ---
+            if (string.IsNullOrEmpty(request.UserId))
+            {
+                throw new ForbiddenAccessException("User must be authenticated to modify budget.");
+            }
+
+            var organizer = await _organizerRepository.GetOrganizerAsync(request.EventId, request.UserId, cancellationToken);
+            if (organizer == null || organizer.PermissionLevel == MyWedding.Domain.Enums.PermissionLevel.Viewer)
+            {
+                throw new ForbiddenAccessException("You do not have permission to modify budget for this event.");
+            }
+
             var weddingEvent = await _weddingEventRepository.GetByIdAsync(request.EventId, cancellationToken);
             if (weddingEvent is null)
             {

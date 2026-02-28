@@ -10,6 +10,7 @@ namespace MyWedding.Domain.Interfaces
     public interface IConversationRepository
     {
         Task<IEnumerable<Conversation>> GetByEventIdAsync(Guid eventId, CancellationToken cancellationToken = default);
+        Task<Conversation?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
         Task AddAsync(Conversation conversation, CancellationToken cancellationToken = default);
     }
 }

@@ -11,16 +11,28 @@ namespace MyWedding.Application.Features.Invitations.Commands.InviteMember
     public class InviteMemberCommandHandler : IRequestHandler<InviteMemberCommand, Guid>
     {
         private readonly IEventInvitationRepository _invitationRepository;
+        private readonly IEventOrganizerRepository _organizerRepository;
         private readonly IUnitOfWork _unitOfWork;
 
-        public InviteMemberCommandHandler(IEventInvitationRepository invitationRepository, IUnitOfWork unitOfWork)
+        public InviteMemberCommandHandler(
+            IEventInvitationRepository invitationRepository, 
+            IEventOrganizerRepository organizerRepository,
+            IUnitOfWork unitOfWork)
         {
             _invitationRepository = invitationRepository;
+            _organizerRepository = organizerRepository;
             _unitOfWork = unitOfWork;
         }
 
         public async Task<Guid> Handle(InviteMemberCommand request, CancellationToken cancellationToken)
         {
+            // --- SECURITY CHECK ---
+            var organizer = await _organizerRepository.GetOrganizerAsync(request.EventId, request.InvitedById, cancellationToken);
+            if (organizer == null || organizer.PermissionLevel == MyWedding.Domain.Enums.PermissionLevel.Viewer)
+            {
+                throw new MyWedding.Application.Common.Exceptions.ForbiddenAccessException("You do not have permission to invite members to this event.");
+            }
+
             // 1. Generate a secure random token
             var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
 

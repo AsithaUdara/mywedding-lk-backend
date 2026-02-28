@@ -1,3 +1,4 @@
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,10 +21,12 @@ namespace MyWedding.API.Controllers
     public class PollsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly IMediator _mediator;
 
-        public PollsController(ApplicationDbContext context)
+        public PollsController(ApplicationDbContext context, IMediator mediator)
         {
             _context = context;
+            _mediator = mediator;
         }
 
         private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -65,26 +68,16 @@ namespace MyWedding.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreatePoll([FromBody] CreatePollRequest request)
         {
-            var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
-
-            var poll = new Poll
+            var command = new MyWedding.Application.Features.Polls.Commands.CreatePoll.CreatePollCommand
             {
-                Id = Guid.NewGuid(),
-                Title = request.Title,
                 EventId = request.EventId,
-                CreatedById = userId,
-                CreatedAt = DateTime.UtcNow,
-                Options = request.Options.Select(o => new PollOption { 
-                    Id = Guid.NewGuid(), 
-                    OptionText = o 
-                }).ToList()
+                Title = request.Title,
+                Options = request.Options,
+                UserId = GetUserId()
             };
 
-            _context.Polls.Add(poll);
-            await _context.SaveChangesAsync();
-
-            return Ok(poll.Id);
+            var pollId = await _mediator.Send(command);
+            return Ok(pollId);
         }
 
         /// <summary>
@@ -96,29 +89,14 @@ namespace MyWedding.API.Controllers
         [HttpPost("{pollId:guid}/vote")]
         public async Task<IActionResult> Vote(Guid pollId, [FromBody] VoteRequest request)
         {
-            var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
-
-            // Check if user already voted in this poll
-            var existingVote = await _context.PollVotes
-                .FirstOrDefaultAsync(v => v.PollOption!.PollId == pollId && v.UserId == userId);
-
-            if (existingVote != null)
+            var command = new MyWedding.Application.Features.Polls.Commands.Vote.VoteCommand
             {
-                _context.PollVotes.Remove(existingVote); // Toggle logic: remove existing vote
-            }
-
-            var vote = new PollVote
-            {
-                Id = Guid.NewGuid(),
-                PollOptionId = request.OptionId,
-                UserId = userId,
-                VotedAt = DateTime.UtcNow
+                PollId = pollId,
+                OptionId = request.OptionId,
+                UserId = GetUserId()
             };
 
-            _context.PollVotes.Add(vote);
-            await _context.SaveChangesAsync();
-
+            await _mediator.Send(command);
             return Ok();
         }
     }

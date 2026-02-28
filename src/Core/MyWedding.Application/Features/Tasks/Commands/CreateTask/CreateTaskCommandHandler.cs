@@ -11,21 +11,36 @@ namespace MyWedding.Application.Features.Tasks.Commands.CreateTask
     public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, Guid>
     {
         private readonly IEventTaskRepository _taskRepository;
+        private readonly IEventOrganizerRepository _organizerRepository;
         private readonly IActivityFeedRepository _activityFeedRepository;
         private readonly IUnitOfWork _unitOfWork;
 
         public CreateTaskCommandHandler(
             IEventTaskRepository taskRepository, 
+            IEventOrganizerRepository organizerRepository,
             IActivityFeedRepository activityFeedRepository,
             IUnitOfWork unitOfWork)
         {
             _taskRepository = taskRepository;
+            _organizerRepository = organizerRepository;
             _activityFeedRepository = activityFeedRepository;
             _unitOfWork = unitOfWork;
         }
 
         public async Task<Guid> Handle(CreateTaskCommand request, CancellationToken cancellationToken)
         {
+            // --- SECURITY CHECK ---
+            if (string.IsNullOrEmpty(request.UserId))
+            {
+                throw new MyWedding.Application.Common.Exceptions.ForbiddenAccessException("User must be authenticated to create tasks.");
+            }
+
+            var organizer = await _organizerRepository.GetOrganizerAsync(request.EventId, request.UserId, cancellationToken);
+            if (organizer == null || organizer.PermissionLevel == MyWedding.Domain.Enums.PermissionLevel.Viewer)
+            {
+                throw new MyWedding.Application.Common.Exceptions.ForbiddenAccessException("You do not have permission to create tasks for this event.");
+            }
+
             var newTask = new EventTask
             {
                 Id = Guid.NewGuid(),
