@@ -2,6 +2,7 @@ using MediatR;
 using MyWedding.Application.Common.Exceptions;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Interfaces;
+using MyWedding.Application.Common.Interfaces;
 using System;
 using System.Linq;
 using System.Threading;
@@ -13,17 +14,23 @@ namespace MyWedding.Application.Features.Polls.Commands.CreatePoll
     {
         private readonly IEventOrganizerRepository _organizerRepository;
         private readonly IActivityFeedRepository _activityFeedRepository;
+        private readonly IUserRepository _userRepository;
+        private readonly ICollaborationService _collaborationService;
         private readonly IUnitOfWork _unitOfWork;
         private readonly MyWedding.Infrastructure.Persistence.ApplicationDbContext _context; // Temporary context access until PollRepository is created
 
         public CreatePollCommandHandler(
             IEventOrganizerRepository organizerRepository,
             IActivityFeedRepository activityFeedRepository,
+            IUserRepository userRepository,
+            ICollaborationService collaborationService,
             IUnitOfWork unitOfWork,
             MyWedding.Infrastructure.Persistence.ApplicationDbContext context)
         {
             _organizerRepository = organizerRepository;
             _activityFeedRepository = activityFeedRepository;
+            _userRepository = userRepository;
+            _collaborationService = collaborationService;
             _unitOfWork = unitOfWork;
             _context = context;
         }
@@ -73,6 +80,22 @@ namespace MyWedding.Application.Features.Polls.Commands.CreatePoll
             await _activityFeedRepository.AddAsync(activityItem, cancellationToken);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // Fetch user for real-time activity update
+            var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
+
+            // Notify real-time clients
+            await _collaborationService.NotifyPollsUpdatedAsync(request.EventId);
+            await _collaborationService.NotifyActivityAsync(request.EventId, new
+            {
+                id = activityItem.Id,
+                userId = activityItem.UserId,
+                userFirstName = user?.FirstName ?? "Team",
+                userLastName = user?.LastName ?? "Member",
+                itemType = activityItem.ItemType.ToString(),
+                content = activityItem.Content,
+                createdAt = activityItem.CreatedAt
+            });
 
             return poll.Id;
         }

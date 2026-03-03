@@ -1,6 +1,7 @@
 using MediatR;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Interfaces;
+using MyWedding.Application.Common.Interfaces;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,17 +13,23 @@ namespace MyWedding.Application.Features.Messages.Commands.PostMessage
         private readonly IMessageRepository _messageRepository;
         private readonly IConversationRepository _conversationRepository;
         private readonly IEventOrganizerRepository _organizerRepository;
+        private readonly IUserRepository _userRepository;
+        private readonly ICollaborationService _collaborationService;
         private readonly IUnitOfWork _unitOfWork;
 
         public PostMessageCommandHandler(
             IMessageRepository messageRepository, 
             IConversationRepository conversationRepository,
             IEventOrganizerRepository organizerRepository,
+            IUserRepository userRepository,
+            ICollaborationService collaborationService,
             IUnitOfWork unitOfWork)
         {
             _messageRepository = messageRepository;
             _conversationRepository = conversationRepository;
             _organizerRepository = organizerRepository;
+            _userRepository = userRepository;
+            _collaborationService = collaborationService;
             _unitOfWork = unitOfWork;
         }
 
@@ -57,6 +64,22 @@ namespace MyWedding.Application.Features.Messages.Commands.PostMessage
 
             await _messageRepository.AddAsync(newMessage, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // Fetch sender info for real-time DTO
+            var sender = await _userRepository.GetByIdAsync(request.SenderId, cancellationToken);
+
+            // Broadcast real-time signal
+            await _collaborationService.NotifyMessageAsync(conversation.EventId, new
+            {
+                id = newMessage.Id,
+                conversationId = newMessage.ConversationId,
+                content = newMessage.Content,
+                createdAt = newMessage.CreatedAt,
+                senderId = newMessage.SenderId,
+                senderFirstName = sender?.FirstName ?? "Unknown",
+                senderLastName = sender?.LastName ?? "User",
+                attachment = (object?)null // Simplified for now
+            });
 
             return newMessage.Id;
         }

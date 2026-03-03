@@ -2,6 +2,7 @@ using MediatR;
 using MyWedding.Domain.Interfaces;
 using MyWedding.Domain.Entities;
 using MyWedding.Application.Common.Exceptions;
+using MyWedding.Application.Common.Interfaces;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,17 +14,20 @@ namespace MyWedding.Application.Features.Events.Commands.SetTotalBudget
         private readonly IWeddingEventRepository _weddingEventRepository;
         private readonly IEventOrganizerRepository _organizerRepository;
         private readonly IActivityFeedRepository _activityFeedRepository;
+        private readonly ICollaborationService _collaborationService;
         private readonly IUnitOfWork _unitOfWork;
 
         public SetTotalBudgetCommandHandler(
             IWeddingEventRepository weddingEventRepository, 
             IEventOrganizerRepository organizerRepository,
             IActivityFeedRepository activityFeedRepository,
+            ICollaborationService collaborationService,
             IUnitOfWork unitOfWork)
         {
             _weddingEventRepository = weddingEventRepository;
             _organizerRepository = organizerRepository;
             _activityFeedRepository = activityFeedRepository;
+            _collaborationService = collaborationService;
             _unitOfWork = unitOfWork;
         }
 
@@ -66,6 +70,9 @@ namespace MyWedding.Application.Features.Events.Commands.SetTotalBudget
             }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // Notify real-time clients
+            await _collaborationService.NotifyBudgetUpdatedAsync(request.EventId);
         }
     }
 }

@@ -2,6 +2,7 @@ using MediatR;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Interfaces;
 using MyWedding.Application.Common.Exceptions;
+using MyWedding.Application.Common.Interfaces;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,6 +16,8 @@ namespace MyWedding.Application.Features.Expenses.Commands.AddExpense
         private readonly IWeddingEventRepository _eventRepository;    
         private readonly IEventOrganizerRepository _organizerRepository;
         private readonly IActivityFeedRepository _activityFeedRepository;
+        private readonly IUserRepository _userRepository;
+        private readonly ICollaborationService _collaborationService;
         private readonly IUnitOfWork _unitOfWork;
 
         public AddExpenseCommandHandler(
@@ -23,6 +26,8 @@ namespace MyWedding.Application.Features.Expenses.Commands.AddExpense
             IWeddingEventRepository eventRepository,
             IEventOrganizerRepository organizerRepository,
             IActivityFeedRepository activityFeedRepository,
+            IUserRepository userRepository,
+            ICollaborationService collaborationService,
             IUnitOfWork unitOfWork)
         {
             _expenseRepository = expenseRepository;
@@ -30,6 +35,8 @@ namespace MyWedding.Application.Features.Expenses.Commands.AddExpense
             _eventRepository = eventRepository;
             _organizerRepository = organizerRepository;
             _activityFeedRepository = activityFeedRepository;
+            _userRepository = userRepository;
+            _collaborationService = collaborationService;
             _unitOfWork = unitOfWork;
         }
 
@@ -83,6 +90,22 @@ namespace MyWedding.Application.Features.Expenses.Commands.AddExpense
             await _activityFeedRepository.AddAsync(activityItem, cancellationToken);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // Fetch user for real-time activity update
+            var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
+
+            // Notify real-time clients
+            await _collaborationService.NotifyBudgetUpdatedAsync(request.EventId);
+            await _collaborationService.NotifyActivityAsync(request.EventId, new
+            {
+                id = activityItem.Id,
+                userId = activityItem.UserId,
+                userFirstName = user?.FirstName ?? "Team",
+                userLastName = user?.LastName ?? "Member",
+                itemType = activityItem.ItemType.ToString(),
+                content = activityItem.Content,
+                createdAt = activityItem.CreatedAt
+            });
 
             return newExpense.Id;
         }

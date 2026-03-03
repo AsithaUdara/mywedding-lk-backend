@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MyWedding.Application.Common.Exceptions;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Interfaces;
+using MyWedding.Application.Common.Interfaces;
 using System;
 using System.Linq;
 using System.Threading;
@@ -13,15 +14,18 @@ namespace MyWedding.Application.Features.Polls.Commands.Vote
     public class VoteCommandHandler : IRequestHandler<VoteCommand, Unit>
     {
         private readonly IEventOrganizerRepository _organizerRepository;
+        private readonly ICollaborationService _collaborationService;
         private readonly IUnitOfWork _unitOfWork;
         private readonly MyWedding.Infrastructure.Persistence.ApplicationDbContext _context;
 
         public VoteCommandHandler(
             IEventOrganizerRepository organizerRepository,
+            ICollaborationService collaborationService,
             IUnitOfWork unitOfWork,
             MyWedding.Infrastructure.Persistence.ApplicationDbContext context)
         {
             _organizerRepository = organizerRepository;
+            _collaborationService = collaborationService;
             _unitOfWork = unitOfWork;
             _context = context;
         }
@@ -63,6 +67,8 @@ namespace MyWedding.Application.Features.Polls.Commands.Vote
                 if (existingVote.PollOptionId == request.OptionId)
                 {
                     await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    // Notify real-time clients
+                    await _collaborationService.NotifyPollsUpdatedAsync(poll.EventId);
                     return Unit.Value;
                 }
             }
@@ -77,6 +83,9 @@ namespace MyWedding.Application.Features.Polls.Commands.Vote
 
             await _context.PollVotes.AddAsync(vote, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // Notify real-time clients
+            await _collaborationService.NotifyPollsUpdatedAsync(poll.EventId);
 
             return Unit.Value;
         }

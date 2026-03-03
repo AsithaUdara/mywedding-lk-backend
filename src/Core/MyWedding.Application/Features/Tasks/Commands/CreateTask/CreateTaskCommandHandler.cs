@@ -2,6 +2,7 @@ using MediatR;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Interfaces;
 using DomainTaskStatus = MyWedding.Domain.Enums.TaskStatus;
+using MyWedding.Application.Common.Interfaces;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,17 +14,20 @@ namespace MyWedding.Application.Features.Tasks.Commands.CreateTask
         private readonly IEventTaskRepository _taskRepository;
         private readonly IEventOrganizerRepository _organizerRepository;
         private readonly IActivityFeedRepository _activityFeedRepository;
+        private readonly ICollaborationService _collaborationService;
         private readonly IUnitOfWork _unitOfWork;
 
         public CreateTaskCommandHandler(
             IEventTaskRepository taskRepository, 
             IEventOrganizerRepository organizerRepository,
             IActivityFeedRepository activityFeedRepository,
+            ICollaborationService collaborationService,
             IUnitOfWork unitOfWork)
         {
             _taskRepository = taskRepository;
             _organizerRepository = organizerRepository;
             _activityFeedRepository = activityFeedRepository;
+            _collaborationService = collaborationService;
             _unitOfWork = unitOfWork;
         }
 
@@ -72,6 +76,9 @@ namespace MyWedding.Application.Features.Tasks.Commands.CreateTask
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+            // Notify real-time clients
+            await _collaborationService.NotifyChecklistUpdatedAsync(request.EventId);
+            
             return newTask.Id;
         }
     }

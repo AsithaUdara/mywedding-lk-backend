@@ -8,6 +8,9 @@ using MyWedding.Domain.Interfaces;
 using MyWedding.Infrastructure.Authentication;
 using MyWedding.Infrastructure.Persistence;
 using MyWedding.Infrastructure.Persistence.Repositories;
+using MyWedding.API.Hubs;
+using MyWedding.API.Services;
+using MyWedding.Application.Common.Interfaces;
 using System.Reflection;
 using System.Text.Json.Serialization;
 
@@ -27,9 +30,13 @@ builder.Services.AddCors(options =>
                       {
                           policy.WithOrigins("http://localhost:3000") // Your frontend's address
                                 .AllowAnyHeader()
-                                .AllowAnyMethod();
+                                .AllowAnyMethod()
+                                .AllowCredentials();
                       });
 });
+
+// 2. Add SignalR services
+builder.Services.AddSignalR();
 
 // 2. Add MediatR for Application layer
 builder.Services.AddMediatR(cfg =>
@@ -54,6 +61,7 @@ builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
 builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 builder.Services.AddScoped<IEventInvitationRepository, EventInvitationRepository>();
 builder.Services.AddScoped<IFirebaseAuthService, FirebaseAuthService>();
+builder.Services.AddScoped<ICollaborationService, CollaborationService>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
 // 5. Initialize Firebase Admin SDK
@@ -115,6 +123,7 @@ app.UseCors(MyAllowSpecificOrigins);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<CollaborationHub>("/hubs/collaboration");
 
 // Seed the database
 using (var scope = app.Services.CreateScope())
