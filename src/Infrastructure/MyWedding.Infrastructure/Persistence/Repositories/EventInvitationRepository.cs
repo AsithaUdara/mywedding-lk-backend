@@ -26,6 +26,14 @@ namespace MyWedding.Infrastructure.Persistence.Repositories
                 .FirstOrDefaultAsync(i => i.Token == token, cancellationToken);
         }
 
+        public async Task<IEnumerable<EventInvitation>> GetByEventIdAsync(Guid eventId, CancellationToken cancellationToken = default)
+        {
+            return await _context.EventInvitations
+                .Where(i => i.EventId == eventId)
+                .OrderByDescending(i => i.InvitedAt)
+                .ToListAsync(cancellationToken);
+        }
+
         public void Update(EventInvitation invitation)
         {
             _context.EventInvitations.Update(invitation);

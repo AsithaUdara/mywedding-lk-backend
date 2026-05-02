@@ -32,5 +32,11 @@ namespace MyWedding.Infrastructure.Persistence.Repositories
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);
         }
+
+        public async Task<Conversation?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            return await _context.Conversations
+                .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+        }
     }
 }

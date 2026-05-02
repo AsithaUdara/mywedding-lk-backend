@@ -48,5 +48,15 @@ namespace MyWedding.Infrastructure.Persistence.Repositories
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);
         }
+
+        public void Update(EventOrganizer organizer)
+        {
+            _context.EventOrganizers.Update(organizer);
+        }
+
+        public void Remove(EventOrganizer organizer)
+        {
+            _context.EventOrganizers.Remove(organizer);
+        }
     }
 }

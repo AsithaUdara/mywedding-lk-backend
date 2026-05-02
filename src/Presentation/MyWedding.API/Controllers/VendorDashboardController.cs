@@ -1,4 +1,3 @@
-// File: src/Presentation/MyWedding.API/Controllers/VendorDashboardController.cs
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,9 +11,12 @@ using System.Threading.Tasks;
 
 namespace MyWedding.API.Controllers
 {
+    /// <summary>
+    /// Controller for vendor-specific dashboard operations including service management.
+    /// </summary>
     [ApiController]
     [Route("api/vendor/dashboard")]
-    [Authorize] // Requires authentication
+    [Authorize]
     public class VendorDashboardController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -26,7 +28,10 @@ namespace MyWedding.API.Controllers
 
         private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-        // GET /api/vendor/dashboard/services
+        /// <summary>
+        /// Retrieves all services owned by the current authenticated vendor.
+        /// </summary>
+        /// <returns>A list of vendor services.</returns>
         [HttpGet("services")]
         public async Task<IActionResult> GetMyServices()
         {
@@ -38,16 +43,19 @@ namespace MyWedding.API.Controllers
             return Ok(result);
         }
 
-        // POST /api/vendor/dashboard/services
+        /// <summary>
+        /// Adds a new service to the current vendor's profile.
+        /// </summary>
+        /// <param name="command">The service details.</param>
+        /// <returns>The ID of the created service.</returns>
         [HttpPost("services")]
         public async Task<IActionResult> AddService([FromBody] AddServiceCommand command)
         {
             var userId = GetUserId();
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
             
-            command.VendorId = userId; // Ensure vendor can only add to their own account
+            command.VendorId = userId;
 
-            // Fallback for CategoryId if not provided or Guid.Empty
             if (command.CategoryId == Guid.Empty)
             {
                 command.CategoryId = Guid.Parse("66666666-6666-6666-6666-666666666666"); // Other
@@ -57,14 +65,18 @@ namespace MyWedding.API.Controllers
             return Ok(new { id = result });
         }
 
-        // PUT /api/vendor/dashboard/services/{id}
+        /// <summary>
+        /// Updates an existing service owned by the vendor.
+        /// </summary>
+        /// <param name="id">The ID of the service to update.</param>
+        /// <param name="command">The updated service details.</param>
+        /// <returns>A success status or 404 if not found.</returns>
         [HttpPut("services/{id}")]
         public async Task<IActionResult> UpdateService(Guid id, [FromBody] UpdateServiceCommand command)
         {
             var userId = GetUserId();
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-            // Fallback for CategoryId if not provided or Guid.Empty
             if (command.CategoryId == Guid.Empty)
             {
                 command.CategoryId = Guid.Parse("66666666-6666-6666-6666-666666666666"); // Other
@@ -75,7 +87,12 @@ namespace MyWedding.API.Controllers
             return result ? Ok() : NotFound();
         }
 
-        // DELETE /api/vendor/dashboard/services/{id}
+        /// <summary>
+        /// Deletes a service owned by the vendor.
+        /// Note: Deletion is blocked if the service has active bookings.
+        /// </summary>
+        /// <param name="id">The ID of the service to delete.</param>
+        /// <returns>A success status or error if deletion is restricted.</returns>
         [HttpDelete("services/{id}")]
         public async Task<IActionResult> DeleteService(Guid id)
         {

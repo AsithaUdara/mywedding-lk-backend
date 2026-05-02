@@ -29,6 +29,22 @@ namespace MyWedding.Infrastructure.Persistence
                 await context.SaveChangesAsync();
             }
 
+            if (!context.BudgetCategories.Any())
+            {
+                var budgetCategories = new[]
+                {
+                    new BudgetCategory { Id = Guid.Parse("77777777-7777-7777-7777-777777777777"), Name = "Venue", Description = "Hotels, Estates, Beachfronts" },
+                    new BudgetCategory { Id = Guid.Parse("88888888-8888-8888-8888-888888888888"), Name = "Photography", Description = "Capture precious moments" },
+                    new BudgetCategory { Id = Guid.Parse("99999999-9999-9999-9999-999999999999"), Name = "Catering", Description = "Exquisite food & service" },
+                    new BudgetCategory { Id = Guid.Parse("AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"), Name = "Floral & Decor", Description = "Stunning arrangements" },
+                    new BudgetCategory { Id = Guid.Parse("BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB"), Name = "Music & DJ", Description = "Unforgettable entertainment" },
+                    new BudgetCategory { Id = Guid.Parse("CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC"), Name = "Other", Description = "Planning, Cakes, Rentals etc" }
+                };
+
+                await context.BudgetCategories.AddRangeAsync(budgetCategories);
+                await context.SaveChangesAsync();
+            }
+
             // Seed default conversation channels for events that don't have any
             var eventsWithoutConversations = await context.WeddingEvents
                 .Where(e => !context.Conversations.Any(c => c.EventId == e.Id))

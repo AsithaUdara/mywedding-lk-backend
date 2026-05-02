@@ -15,5 +15,8 @@ namespace MyWedding.Domain.Interfaces
         
         // --- NEW METHOD ---
         Task<IEnumerable<EventOrganizer>> GetOrganizersByEventIdAsync(Guid eventId, CancellationToken cancellationToken = default);
+        
+        void Update(EventOrganizer organizer);
+        void Remove(EventOrganizer organizer);
     }
 }

@@ -84,6 +84,42 @@ public class EventOrganizersController : ControllerBase
 
         return Ok(new { message = "Invitation successful." });
     }
+
+    // --- NEW PUT ENDPOINT ---
+    [HttpPut("{userId}")]
+    public async Task<IActionResult> UpdateOrganizerRole(Guid eventId, string userId, [FromBody] UpdateOrganizerRequest request)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(currentUserId))
+        {
+            return Unauthorized();
+        }
+
+        var command = new MyWedding.Application.Features.EventOrganizers.Commands.UpdateOrganizer.UpdateOrganizerCommand
+        {
+            EventId = eventId,
+            TargetUserId = userId,
+            RequestingUserId = currentUserId,
+            Role = request.Role,
+            PermissionLevel = request.PermissionLevel
+        };
+
+        try
+        {
+            await _mediator.Send(command);
+        }
+        catch (MyWedding.Application.Common.Exceptions.NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (MyWedding.Application.Common.Exceptions.ForbiddenAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
+
+        return Ok(new { message = "Organizer updated successfully." });
+    }
 }
 
 public record InviteUserRequest(string Email, OrganizerRole Role, PermissionLevel PermissionLevel);
+public record UpdateOrganizerRequest(OrganizerRole Role, PermissionLevel PermissionLevel);

@@ -1,4 +1,3 @@
-// File: src/Presentation/MyWedding.API/Controllers/EventsController.cs
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,118 +6,157 @@ using MyWedding.Application.Features.Events.Commands.SetEventPreferences;
 using MyWedding.Application.Features.Events.Commands.SetTotalBudget;
 using MyWedding.Application.Features.Events.Queries.GetEventById;
 using MyWedding.Application.Features.Events.Queries.GetEventsByUserId;
+using MyWedding.Application.Features.Invitations.Queries.GetEventInvitations;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
-[ApiController]
-[Route("api/[controller]")]
-[Authorize] // This entire controller is protected and requires a valid token
-public class EventsController : ControllerBase
+namespace MyWedding.API.Controllers
 {
-    private readonly IMediator _mediator;
-
-    public EventsController(IMediator mediator)
+    /// <summary>
+    /// Controller for managing wedding events, including creation, retrieval, budget setting, and style preferences.
+    /// </summary>
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class EventsController : ControllerBase
     {
-        _mediator = mediator;
-    }
+        private readonly IMediator _mediator;
 
-    [HttpPost]
-    public async Task<IActionResult> CreateEvent([FromBody] CreateEventRequest request)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
+        public EventsController(IMediator mediator)
         {
-            return Unauthorized();
+            _mediator = mediator;
         }
 
-        var command = new CreateEventCommand
+        private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        /// <summary>
+        /// Creates a new wedding event for the current user.
+        /// </summary>
+        /// <param name="request">The details of the event to create.</param>
+        /// <returns>The ID of the created event.</returns>
+        [HttpPost]
+        public async Task<IActionResult> CreateEvent([FromBody] CreateEventRequest request)
         {
-            EventName = request.EventName,
-            EventDate = request.EventDate,
-            UserId = userId
-        };
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
 
-        var eventId = await _mediator.Send(command);
+            var command = new CreateEventCommand
+            {
+                EventName = request.EventName,
+                EventDate = request.EventDate,
+                UserId = userId
+            };
 
-        return CreatedAtAction(nameof(GetEventById), new { id = eventId }, new { EventId = eventId });
-    }
+            var eventId = await _mediator.Send(command);
 
-    [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetEventById(Guid id)
-    {
-        var query = new GetEventByIdQuery { EventId = id };
-        var result = await _mediator.Send(query);
-
-        // Ensure the current user has access to this event
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (result != null) {
-            var isOwner = result.CreatedById == currentUserId;
-            // Check if user is an organizer (this would ideally be done inside the Query but checking here for simplicity)
-            // But we need to inject IEventOrganizerRepository or handle it in the application layer.
-            // Actually, let's fix the application layer query to return whether the user has access.
+            return CreatedAtAction(nameof(GetEventById), new { id = eventId }, new { EventId = eventId });
         }
 
-        return result is not null ? Ok(result) : NotFound();
-    }
-
-    [HttpGet]
-    public async Task<IActionResult> GetEventsForCurrentUser()
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
+        /// <summary>
+        /// Retrieves the details of a specific wedding event by its ID.
+        /// </summary>
+        /// <param name="id">The unique identifier of the wedding event.</param>
+        /// <returns>The wedding event details if found.</returns>
+        [HttpGet("{id:guid}")]
+        public async Task<IActionResult> GetEventById(Guid id)
         {
-            return Unauthorized();
+            var query = new GetEventByIdQuery { EventId = id };
+            var result = await _mediator.Send(query);
+
+            return result is not null ? Ok(result) : NotFound();
         }
 
-        var query = new GetEventsByUserIdQuery { UserId = userId };
-        var result = await _mediator.Send(query);
-
-        return Ok(result);
-    }
-
-    // --- NEW ENDPOINT ---
-    [HttpPut("{eventId:guid}/budget")]
-    public async Task<IActionResult> SetTotalBudget(Guid eventId, [FromBody] SetTotalBudgetRequest request)
-    {
-        // TODO: Add security check to ensure user has 'Editor' or 'Owner' permissions
-        var command = new SetTotalBudgetCommand
+        /// <summary>
+        /// Retrieves all wedding events where the current user is an owner or organizer.
+        /// </summary>
+        /// <returns>A list of wedding events.</returns>
+        [HttpGet]
+        public async Task<IActionResult> GetEventsForCurrentUser()
         {
-            EventId = eventId,
-            TotalBudget = request.TotalBudget
-        };
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
 
-        await _mediator.Send(command);
+            var query = new GetEventsByUserIdQuery { UserId = userId };
+            var result = await _mediator.Send(query);
 
-        return NoContent(); // 204 No Content is the standard response for a successful PUT
-    }
-
-    // --- STYLE PREFERENCES ENDPOINT ---
-    [HttpPut("{eventId:guid}/preferences")]
-    public async Task<IActionResult> SetStylePreferences(Guid eventId, [FromBody] Dictionary<string, string> preferences)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
+            return Ok(result);
         }
 
-        var command = new SetEventPreferencesCommand
+        /// <summary>
+        /// Sets or updates the total budget for a specific wedding event.
+        /// </summary>
+        /// <param name="eventId">The unique identifier of the wedding event.</param>
+        /// <param name="request">The new budget amount.</param>
+        /// <returns>NoContent if successful.</returns>
+        [HttpPut("{eventId:guid}/budget")]
+        public async Task<IActionResult> SetTotalBudget(Guid eventId, [FromBody] SetTotalBudgetRequest request)
         {
-            EventId = eventId,
-            UserId = userId,
-            Preferences = preferences
-        };
+            var userId = GetUserId();
+            var command = new SetTotalBudgetCommand
+            {
+                EventId = eventId,
+                TotalBudget = request.TotalBudget,
+                UserId = userId
+            };
 
-        await _mediator.Send(command);
+            await _mediator.Send(command);
 
-        return NoContent(); // 204 No Content is the standard success response for a PUT
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Sets or updates the wedding style preferences (e.g., Theme, Vibe) for an event.
+        /// </summary>
+        /// <param name="eventId">The unique identifier of the wedding event.</param>
+        /// <param name="preferences">A dictionary of key-value pairs representing style preferences.</param>
+        /// <returns>NoContent if successful.</returns>
+        [HttpPut("{eventId:guid}/preferences")]
+        public async Task<IActionResult> SetStylePreferences(Guid eventId, [FromBody] Dictionary<string, string> preferences)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var command = new SetEventPreferencesCommand
+            {
+                EventId = eventId,
+                UserId = userId,
+                Preferences = preferences
+            };
+
+            await _mediator.Send(command);
+
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Retrieves the list of invitations sent for a specific wedding event, including their current status.
+        /// </summary>
+        /// <param name="eventId">The unique identifier of the wedding event.</param>
+        /// <returns>A list of invitations and their statuses.</returns>
+        [HttpGet("{eventId:guid}/invitations")]
+        public async Task<IActionResult> GetInvitations(Guid eventId)
+        {
+            var query = new GetEventInvitationsQuery { EventId = eventId };
+            var result = await _mediator.Send(query);
+
+            return Ok(result);
+        }
     }
+
+    /// <summary>Request DTO for creating a new wedding event.</summary>
+    public record CreateEventRequest(string EventName, DateTime EventDate);
+
+    /// <summary>Request DTO for setting the total budget.</summary>
+    public record SetTotalBudgetRequest(decimal TotalBudget);
 }
-
-// This is a simple DTO (Data Transfer Object) for the request body
-public record CreateEventRequest(string EventName, DateTime EventDate);
-
-// --- NEW DTO FOR THE NEW ENDPOINT ---
-public record SetTotalBudgetRequest(decimal TotalBudget);

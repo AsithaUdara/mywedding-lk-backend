@@ -1,14 +1,17 @@
-// File: src/Presentation/MyWedding.API/Program.cs
-
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using MyWedding.API.Middleware;
 using MyWedding.Application.Features.Users.Commands.SyncUser;
 using MyWedding.Domain.Interfaces;
 using MyWedding.Infrastructure.Authentication;
 using MyWedding.Infrastructure.Persistence;
 using MyWedding.Infrastructure.Persistence.Repositories;
+using MyWedding.API.Hubs;
+using MyWedding.API.Services;
+using MyWedding.Application.Common.Interfaces;
+using System.Reflection;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,9 +30,13 @@ builder.Services.AddCors(options =>
                       {
                           policy.WithOrigins("http://localhost:3000") // Your frontend's address
                                 .AllowAnyHeader()
-                                .AllowAnyMethod();
+                                .AllowAnyMethod()
+                                .AllowCredentials();
                       });
 });
+
+// 2. Add SignalR services
+builder.Services.AddSignalR();
 
 // 2. Add MediatR for Application layer
 builder.Services.AddMediatR(cfg =>
@@ -53,7 +60,9 @@ builder.Services.AddScoped<IActivityFeedRepository, ActivityFeedRepository>();
 builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
 builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 builder.Services.AddScoped<IEventInvitationRepository, EventInvitationRepository>();
+builder.Services.AddScoped<IPollRepository, PollRepository>();
 builder.Services.AddScoped<IFirebaseAuthService, FirebaseAuthService>();
+builder.Services.AddScoped<ICollaborationService, CollaborationService>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
 // 5. Initialize Firebase Admin SDK
@@ -89,11 +98,18 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true; // Accept both camelCase and PascalCase from clients
     });
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "MyWedding LK API", Version = "v1" });
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
+});
 
 var app = builder.Build();
 
-// --- Configure the HTTP request pipeline. ---
+// --- HTTP Request Pipeline ---
+app.UseMiddleware<ExceptionMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -108,6 +124,7 @@ app.UseCors(MyAllowSpecificOrigins);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<CollaborationHub>("/hubs/collaboration");
 
 // Seed the database
 using (var scope = app.Services.CreateScope())

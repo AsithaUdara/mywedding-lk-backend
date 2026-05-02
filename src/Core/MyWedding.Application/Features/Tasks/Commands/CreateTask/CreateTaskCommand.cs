@@ -10,5 +10,6 @@ namespace MyWedding.Application.Features.Tasks.Commands.CreateTask
         public required string Title { get; init; }
         public string? Description { get; init; }
         public DateTime? DueDate { get; init; }
+        public string? UserId { get; set; }
     }
 }

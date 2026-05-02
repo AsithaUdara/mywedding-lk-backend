@@ -1,90 +1,80 @@
 using MediatR;
+using MyWedding.Application.Common.Exceptions;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Interfaces;
-using MyWedding.Application.Common.Exceptions;
 using MyWedding.Application.Common.Interfaces;
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MyWedding.Application.Features.Expenses.Commands.AddExpense
+namespace MyWedding.Application.Features.Polls.Commands.CreatePoll
 {
-    public class AddExpenseCommandHandler : IRequestHandler<AddExpenseCommand, Guid>
+    public class CreatePollCommandHandler : IRequestHandler<CreatePollCommand, Guid>
     {
-        private readonly IExpenseRepository _expenseRepository;
-        private readonly IBudgetCategoryRepository _categoryRepository; 
-        private readonly IWeddingEventRepository _eventRepository;    
         private readonly IEventOrganizerRepository _organizerRepository;
         private readonly IActivityFeedRepository _activityFeedRepository;
         private readonly IUserRepository _userRepository;
         private readonly ICollaborationService _collaborationService;
+        private readonly IPollRepository _pollRepository;
         private readonly IUnitOfWork _unitOfWork;
 
-        public AddExpenseCommandHandler(
-            IExpenseRepository expenseRepository,
-            IBudgetCategoryRepository categoryRepository,
-            IWeddingEventRepository eventRepository,
+        public CreatePollCommandHandler(
             IEventOrganizerRepository organizerRepository,
             IActivityFeedRepository activityFeedRepository,
             IUserRepository userRepository,
             ICollaborationService collaborationService,
+            IPollRepository pollRepository,
             IUnitOfWork unitOfWork)
         {
-            _expenseRepository = expenseRepository;
-            _categoryRepository = categoryRepository;
-            _eventRepository = eventRepository;
             _organizerRepository = organizerRepository;
             _activityFeedRepository = activityFeedRepository;
             _userRepository = userRepository;
             _collaborationService = collaborationService;
+            _pollRepository = pollRepository;
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<Guid> Handle(AddExpenseCommand request, CancellationToken cancellationToken)
+        public async Task<Guid> Handle(CreatePollCommand request, CancellationToken cancellationToken)
         {
-            // --- VALIDATIONS ---
-            var weddingEvent = await _eventRepository.GetByIdAsync(request.EventId, cancellationToken);
-            if (weddingEvent is null)
+            // --- SECURITY CHECK ---
+            if (string.IsNullOrEmpty(request.UserId))
             {
-                throw new NotFoundException($"Wedding event with ID '{request.EventId}' not found.");
+                throw new ForbiddenAccessException("User must be authenticated to create polls.");
             }
 
-            // --- SECURITY CHECK ---
             var organizer = await _organizerRepository.GetOrganizerAsync(request.EventId, request.UserId, cancellationToken);
             if (organizer == null || organizer.PermissionLevel == MyWedding.Domain.Enums.PermissionLevel.Viewer)
             {
-                throw new ForbiddenAccessException("You do not have permission to add expenses to this event.");
+                throw new ForbiddenAccessException("You do not have permission to create polls for this event.");
             }
 
-            var categoryExists = await _categoryRepository.ExistsAsync(request.BudgetCategoryId, cancellationToken); 
-            if (!categoryExists)
-            {
-                throw new NotFoundException($"Budget category with ID '{request.BudgetCategoryId}' not found.");
-            }
-            // --- END VALIDATIONS ---
-
-            var newExpense = new Expense
+            // --- CREATE POLL ---
+            var poll = new Poll
             {
                 Id = Guid.NewGuid(),
-                EventId = request.EventId,
                 Title = request.Title,
-                Amount = request.Amount,
-                ExpenseDate = request.ExpenseDate,
-                BudgetCategoryId = request.BudgetCategoryId,
+                EventId = request.EventId,
+                CreatedById = request.UserId,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                IsActive = true,
+                Options = request.Options.Select(o => new PollOption 
+                { 
+                    Id = Guid.NewGuid(), 
+                    OptionText = o 
+                }).ToList()
             };
 
-            await _expenseRepository.AddAsync(newExpense, cancellationToken);
+            await _pollRepository.AddAsync(poll, cancellationToken);
 
-            // Log activity: User added an expense
+            // --- CREATE ACTIVITY LOG ---
             var activityItem = new ActivityFeedItem
             {
                 Id = Guid.NewGuid(),
                 EventId = request.EventId,
-                UserId = request.UserId, // Assuming request contains UserId
+                UserId = request.UserId,
                 ItemType = MyWedding.Domain.Enums.ActivityType.SystemLog,
-                Content = $"added a new expense: \"{request.Title}\" for {request.Amount:N2}",
+                Content = $"created a new poll: \"{request.Title}\"",
                 CreatedAt = DateTime.UtcNow
             };
             await _activityFeedRepository.AddAsync(activityItem, cancellationToken);
@@ -95,7 +85,7 @@ namespace MyWedding.Application.Features.Expenses.Commands.AddExpense
             var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
 
             // Notify real-time clients
-            await _collaborationService.NotifyBudgetUpdatedAsync(request.EventId);
+            await _collaborationService.NotifyPollsUpdatedAsync(request.EventId);
             await _collaborationService.NotifyActivityAsync(request.EventId, new
             {
                 id = activityItem.Id,
@@ -107,7 +97,7 @@ namespace MyWedding.Application.Features.Expenses.Commands.AddExpense
                 createdAt = activityItem.CreatedAt
             });
 
-            return newExpense.Id;
+            return poll.Id;
         }
     }
 }
