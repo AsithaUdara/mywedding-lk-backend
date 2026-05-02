@@ -6,6 +6,7 @@ using MyWedding.Application.Features.Events.Commands.SetEventPreferences;
 using MyWedding.Application.Features.Events.Commands.SetTotalBudget;
 using MyWedding.Application.Features.Events.Queries.GetEventById;
 using MyWedding.Application.Features.Events.Queries.GetEventsByUserId;
+using MyWedding.Application.Features.Invitations.Queries.GetEventInvitations;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
@@ -136,6 +137,20 @@ namespace MyWedding.API.Controllers
             await _mediator.Send(command);
 
             return NoContent();
+        }
+
+        /// <summary>
+        /// Retrieves the list of invitations sent for a specific wedding event, including their current status.
+        /// </summary>
+        /// <param name="eventId">The unique identifier of the wedding event.</param>
+        /// <returns>A list of invitations and their statuses.</returns>
+        [HttpGet("{eventId:guid}/invitations")]
+        public async Task<IActionResult> GetInvitations(Guid eventId)
+        {
+            var query = new GetEventInvitationsQuery { EventId = eventId };
+            var result = await _mediator.Send(query);
+
+            return Ok(result);
         }
     }
 

@@ -42,6 +42,7 @@ namespace MyWedding.API.Controllers
             var polls = await _context.Polls
                 .Include(p => p.Options)
                 .ThenInclude(o => o.Votes)
+                .ThenInclude(v => v.User)
                 .Where(p => p.EventId == eventId && p.IsActive)
                 .Select(p => new {
                     p.Id,
@@ -51,7 +52,7 @@ namespace MyWedding.API.Controllers
                         o.Id,
                         o.OptionText,
                         VoteCount = o.Votes.Count,
-                        Voters = o.Votes.Select(v => v.UserId)
+                        Voters = o.Votes.Select(v => new { id = v.UserId, name = v.User != null ? v.User.FirstName + " " + v.User.LastName : "Unknown" })
                     }),
                     HasVoted = p.Options.Any(o => o.Votes.Any(v => v.UserId == GetUserId()))
                 })

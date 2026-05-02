@@ -43,5 +43,10 @@ namespace MyWedding.API.Services
         {
             await _hubContext.Clients.Group(eventId.ToString()).SendAsync("PollsUpdated");
         }
+
+        public async Task NotifyInvitationAcceptedAsync(Guid eventId, string email)
+        {
+            await _hubContext.Clients.Group(eventId.ToString()).SendAsync("InvitationAccepted", new { email });
+        }
     }
 }

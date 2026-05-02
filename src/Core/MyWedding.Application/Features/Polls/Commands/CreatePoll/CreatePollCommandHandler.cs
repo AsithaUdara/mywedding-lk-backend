@@ -16,23 +16,23 @@ namespace MyWedding.Application.Features.Polls.Commands.CreatePoll
         private readonly IActivityFeedRepository _activityFeedRepository;
         private readonly IUserRepository _userRepository;
         private readonly ICollaborationService _collaborationService;
+        private readonly IPollRepository _pollRepository;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly MyWedding.Infrastructure.Persistence.ApplicationDbContext _context; // Temporary context access until PollRepository is created
 
         public CreatePollCommandHandler(
             IEventOrganizerRepository organizerRepository,
             IActivityFeedRepository activityFeedRepository,
             IUserRepository userRepository,
             ICollaborationService collaborationService,
-            IUnitOfWork unitOfWork,
-            MyWedding.Infrastructure.Persistence.ApplicationDbContext context)
+            IPollRepository pollRepository,
+            IUnitOfWork unitOfWork)
         {
             _organizerRepository = organizerRepository;
             _activityFeedRepository = activityFeedRepository;
             _userRepository = userRepository;
             _collaborationService = collaborationService;
+            _pollRepository = pollRepository;
             _unitOfWork = unitOfWork;
-            _context = context;
         }
 
         public async Task<Guid> Handle(CreatePollCommand request, CancellationToken cancellationToken)
@@ -65,7 +65,7 @@ namespace MyWedding.Application.Features.Polls.Commands.CreatePoll
                 }).ToList()
             };
 
-            await _context.Polls.AddAsync(poll, cancellationToken);
+            await _pollRepository.AddAsync(poll, cancellationToken);
 
             // --- CREATE ACTIVITY LOG ---
             var activityItem = new ActivityFeedItem

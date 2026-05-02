@@ -60,6 +60,7 @@ builder.Services.AddScoped<IActivityFeedRepository, ActivityFeedRepository>();
 builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
 builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 builder.Services.AddScoped<IEventInvitationRepository, EventInvitationRepository>();
+builder.Services.AddScoped<IPollRepository, PollRepository>();
 builder.Services.AddScoped<IFirebaseAuthService, FirebaseAuthService>();
 builder.Services.AddScoped<ICollaborationService, CollaborationService>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>());

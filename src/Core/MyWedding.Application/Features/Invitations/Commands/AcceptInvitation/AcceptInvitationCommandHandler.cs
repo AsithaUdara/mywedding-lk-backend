@@ -5,6 +5,7 @@ using MyWedding.Domain.Enums;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using MyWedding.Application.Common.Interfaces;
 
 namespace MyWedding.Application.Features.Invitations.Commands.AcceptInvitation
 {
@@ -13,22 +14,34 @@ namespace MyWedding.Application.Features.Invitations.Commands.AcceptInvitation
         private readonly IEventInvitationRepository _invitationRepository;
         private readonly IEventOrganizerRepository _organizerRepository;
         private readonly IActivityFeedRepository _activityFeedRepository;
+        private readonly IUserRepository _userRepository;
+        private readonly ICollaborationService _collaborationService;
         private readonly IUnitOfWork _unitOfWork;
 
         public AcceptInvitationCommandHandler(
             IEventInvitationRepository invitationRepository,
             IEventOrganizerRepository organizerRepository,
             IActivityFeedRepository activityFeedRepository,
+            IUserRepository userRepository,
+            ICollaborationService collaborationService,
             IUnitOfWork unitOfWork)
         {
             _invitationRepository = invitationRepository;
             _organizerRepository = organizerRepository;
             _activityFeedRepository = activityFeedRepository;
+            _userRepository = userRepository;
+            _collaborationService = collaborationService;
             _unitOfWork = unitOfWork;
         }
 
         public async Task<bool> Handle(AcceptInvitationCommand request, CancellationToken cancellationToken)
         {
+            var userId = request.UserId?.Trim();
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new Common.Exceptions.ForbiddenAccessException("User ID is required.");
+            }
+
             var invitation = await _invitationRepository.GetByTokenAsync(request.Token, cancellationToken);
 
             if (invitation == null)
@@ -37,68 +50,100 @@ namespace MyWedding.Application.Features.Invitations.Commands.AcceptInvitation
             }
 
             // 1. Check if user is ALREADY an organizer (Idempotency)
-            // If the user effectively "owns" this spot already, treat it as a success.
-            // This handles cases where they click the link again or the UI didn't update.
-            var alreadyOrganizer = await _organizerRepository.IsUserAlreadyOrganizerAsync(invitation.EventId, request.UserId, cancellationToken);
+            var alreadyOrganizer = await _organizerRepository.IsUserAlreadyOrganizerAsync(invitation.EventId, userId, cancellationToken);
             if (alreadyOrganizer)
             {
+                // If they are already a member, we just mark the invitation as accepted if it isn't already
+                if (!invitation.IsAccepted)
+                {
+                    invitation.IsAccepted = true;
+                    invitation.AcceptedAt = DateTime.UtcNow;
+                    _invitationRepository.Update(invitation);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                }
                 return true;
             }
 
-            // 2. NOW check if validation fails
+            // 2. Validate invitation status
             if (invitation.IsAccepted || invitation.IsExpired)
             {
                 return false;
             }
 
-            // 3. Add user as an organizer (if not already)
-            // (alreadyOrganizer check removed from here since we did it above)
+            // 3. Ensure User exists in local DB (Foreign Key requirement)
+            var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+            if (user == null)
             {
-                var organizer = new EventOrganizer
-                {
-                    EventId = invitation.EventId,
-                    UserId = request.UserId,
-                    Role = OrganizerRole.Friend, // Default role
-                    PermissionLevel = PermissionLevel.Editor, // Default permission
-                    JoinedAt = DateTime.UtcNow
-                };
-                await _organizerRepository.AddAsync(organizer, cancellationToken);
+                // If user is logged in but not in our DB, they might need to complete profile/registration
+                throw new Common.Exceptions.NotFoundException("User not found in local database. Please ensure your profile is created before joining a team.");
             }
 
-            // 2. Update invitation status
+            // 4. Update invitation status
             invitation.IsAccepted = true;
             invitation.AcceptedAt = DateTime.UtcNow;
             _invitationRepository.Update(invitation);
 
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            // 5. Add user as an organizer
+            var organizer = new EventOrganizer
+            {
+                EventId = invitation.EventId,
+                UserId = userId,
+                Role = invitation.Role,
+                PermissionLevel = invitation.PermissionLevel,
+                JoinedAt = DateTime.UtcNow
+            };
+            await _organizerRepository.AddAsync(organizer, cancellationToken);
 
-            // 3. Post to Activity Feed
+            // 6. Post to Activity Feed
             var activity = new ActivityFeedItem
             {
                 Id = Guid.NewGuid(),
                 EventId = invitation.EventId,
-                UserId = request.UserId,
+                UserId = userId,
                 CreatedAt = DateTime.UtcNow,
                 ItemType = MyWedding.Domain.Enums.ActivityType.SystemLog,
                 Content = "joined the wedding planning team."
             };
             await _activityFeedRepository.AddAsync(activity, cancellationToken);
             
-            try
+            try 
             {
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Verify if the user is now an organizer (handle race condition/idempotency)
-                // We catch generic Exception because we cannot easily reference EF Core exceptions here
-                // If the insert failed for ANY reason but the user is NOW an organizer, we consider it a success.
-                var isNowOrganizer = await _organizerRepository.IsUserAlreadyOrganizerAsync(invitation.EventId, request.UserId, cancellationToken);
+                // Handle potential race condition where they joined via another window at the same time
+                var isNowOrganizer = await _organizerRepository.IsUserAlreadyOrganizerAsync(invitation.EventId, userId, cancellationToken);
                 if (isNowOrganizer)
                 {
                     return true;
                 }
-                throw; // Rethrow if it wasn't a duplicate key or user is still not an organizer
+                
+                // If it's not a duplicate key error, wrap it with more context
+                throw new Exception($"Failed to join the team: {ex.Message}. This usually happens if there is a data constraint violation.", ex);
+            }
+
+            // 7. Real-time Notifications
+            try
+            {
+                // Notify team that someone joined (triggers refresh for others)
+                await _collaborationService.NotifyActivityAsync(invitation.EventId, new
+                {
+                    id = activity.Id,
+                    userId = activity.UserId,
+                    userFirstName = user.FirstName,
+                    userLastName = user.LastName,
+                    itemType = activity.ItemType.ToString(),
+                    content = activity.Content,
+                    createdAt = activity.CreatedAt
+                });
+
+                // Specific signal for invitations status refresh
+                await _collaborationService.NotifyInvitationAcceptedAsync(invitation.EventId, invitation.Email);
+            }
+            catch (Exception)
+            {
+                // Don't fail the whole operation if notification fails
             }
 
             return true;

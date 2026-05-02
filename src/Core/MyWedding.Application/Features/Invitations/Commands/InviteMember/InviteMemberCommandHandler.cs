@@ -5,6 +5,7 @@ using System;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using MyWedding.Application.Common.Interfaces;
 
 namespace MyWedding.Application.Features.Invitations.Commands.InviteMember
 {
@@ -12,15 +13,18 @@ namespace MyWedding.Application.Features.Invitations.Commands.InviteMember
     {
         private readonly IEventInvitationRepository _invitationRepository;
         private readonly IEventOrganizerRepository _organizerRepository;
+        private readonly ICollaborationService _collaborationService;
         private readonly IUnitOfWork _unitOfWork;
 
         public InviteMemberCommandHandler(
             IEventInvitationRepository invitationRepository, 
             IEventOrganizerRepository organizerRepository,
+            ICollaborationService collaborationService,
             IUnitOfWork unitOfWork)
         {
             _invitationRepository = invitationRepository;
             _organizerRepository = organizerRepository;
+            _collaborationService = collaborationService;
             _unitOfWork = unitOfWork;
         }
 
@@ -46,16 +50,15 @@ namespace MyWedding.Application.Features.Invitations.Commands.InviteMember
                 InvitedAt = DateTime.UtcNow,
                 ExpiresAt = DateTime.UtcNow.AddDays(7), // Expire in 7 days
                 IsAccepted = false,
-                InvitedById = request.InvitedById
+                InvitedById = request.InvitedById,
+                Role = request.Role,
+                PermissionLevel = request.PermissionLevel
             };
 
             await _invitationRepository.AddAsync(invitation, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            // 3. Mock Email Sending
-            // In a real app, you would inject an IEmailService and call it here:
-            // await _emailService.SendInvitationEmail(request.Email, token, request.EventId);
-            Console.WriteLine($"[MOCK EMAIL] Invitation sent to {request.Email} with token {token}");
+            await _collaborationService.NotifyInvitationAcceptedAsync(request.EventId, request.Email);
 
             return invitation.Id;
         }

@@ -33,5 +33,10 @@ namespace MyWedding.Application.Common.Interfaces
         /// Signals that a poll was created or a vote was cast.
         /// </summary>
         Task NotifyPollsUpdatedAsync(Guid eventId);
+
+        /// <summary>
+        /// Signals that an invitation has been accepted.
+        /// </summary>
+        Task NotifyInvitationAcceptedAsync(Guid eventId, string email);
     }
 }

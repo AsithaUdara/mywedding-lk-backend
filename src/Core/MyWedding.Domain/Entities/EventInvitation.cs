@@ -1,4 +1,5 @@
 using System;
+using MyWedding.Domain.Enums;
 
 namespace MyWedding.Domain.Entities
 {
@@ -18,6 +19,9 @@ namespace MyWedding.Domain.Entities
         
         public required string InvitedById { get; set; }
         public User? InvitedBy { get; set; }
+
+        public OrganizerRole Role { get; set; } = OrganizerRole.Friend;
+        public PermissionLevel PermissionLevel { get; set; } = PermissionLevel.Editor;
         
         public bool IsExpired => DateTime.UtcNow > ExpiresAt && !IsAccepted;
     }

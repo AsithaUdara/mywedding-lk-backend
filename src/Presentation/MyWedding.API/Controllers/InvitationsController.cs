@@ -33,7 +33,9 @@ namespace MyWedding.API.Controllers
                 {
                     EventId = request.EventId,
                     Email = request.Email,
-                    InvitedById = GetUserId()
+                    InvitedById = GetUserId(),
+                    Role = request.Role ?? MyWedding.Domain.Enums.OrganizerRole.Friend,
+                    PermissionLevel = request.PermissionLevel ?? MyWedding.Domain.Enums.PermissionLevel.Editor
                 };
 
                 var invitationId = await _mediator.Send(command);
@@ -73,6 +75,6 @@ namespace MyWedding.API.Controllers
         }
     }
 
-    public record InviteRequest(Guid EventId, string Email);
+    public record InviteRequest(Guid EventId, string Email, MyWedding.Domain.Enums.OrganizerRole? Role, MyWedding.Domain.Enums.PermissionLevel? PermissionLevel);
     public record AcceptRequest(string Token);
 }

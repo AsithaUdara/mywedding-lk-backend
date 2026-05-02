@@ -8,6 +8,10 @@ namespace MyWedding.Domain.Enums
         Parent,
         Planner,
         FamilyMember,
-        Friend
+        Friend,
+        Owner,
+        MaidOfHonor,
+        BestMan,
+        Family
     }
 }
