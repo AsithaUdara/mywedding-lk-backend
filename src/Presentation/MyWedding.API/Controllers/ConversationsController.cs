@@ -3,9 +3,9 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MyWedding.Application.Features.Conversations.Queries.GetConversationsByEventId;
-using MyWedding.Application.Features.Messages.Commands.PostMessage;
-using MyWedding.Application.Features.Messages.Queries.GetMessagesByConversationId;
+
+
+
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;

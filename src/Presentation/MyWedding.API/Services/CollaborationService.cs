@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.SignalR;
-using MyWedding.Application.Common.Interfaces;
+
 using MyWedding.API.Hubs;
 using System;
 using System.Threading.Tasks;

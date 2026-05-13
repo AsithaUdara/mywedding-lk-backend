@@ -1,10 +1,10 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MyWedding.Application.Features.Vendors.Commands.AddService;
-using MyWedding.Application.Features.Vendors.Commands.UpdateService;
-using MyWedding.Application.Features.Vendors.Commands.DeleteService;
-using MyWedding.Application.Features.Vendors.Queries.GetVendorServices;
+
+
+
+
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;

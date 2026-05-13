@@ -1,7 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MyWedding.Application.Features.Bookings.Commands.CreateBooking;
+
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -43,11 +43,11 @@ namespace MyWedding.API.Controllers
                 var bookingId = await _mediator.Send(command);
                 return Ok(new { BookingId = bookingId });
             }
-            catch (MyWedding.Application.Common.Exceptions.NotFoundException ex)
+            catch (MyWedding.SharedKernel.Exceptions.NotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
             }
-            catch (MyWedding.Application.Common.Exceptions.ForbiddenAccessException)
+            catch (MyWedding.SharedKernel.Exceptions.ForbiddenAccessException)
             {
                 return Forbid();
             }

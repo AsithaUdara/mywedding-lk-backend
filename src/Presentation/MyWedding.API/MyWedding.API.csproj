@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -10,17 +10,31 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Core\MyWedding.Application\MyWedding.Application.csproj" />
-    <ProjectReference Include="..\..\Infrastructure\MyWedding.Infrastructure\MyWedding.Infrastructure.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.6" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.4">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.6">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Modules\Identity\MyWedding.Identity.Application\MyWedding.Identity.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Identity\MyWedding.Identity.Infrastructure\MyWedding.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Events\MyWedding.Events.Application\MyWedding.Events.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Events\MyWedding.Events.Infrastructure\MyWedding.Events.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Tasks\MyWedding.Tasks.Application\MyWedding.Tasks.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Tasks\MyWedding.Tasks.Infrastructure\MyWedding.Tasks.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Budget\MyWedding.Budget.Application\MyWedding.Budget.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Budget\MyWedding.Budget.Infrastructure\MyWedding.Budget.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Vendors\MyWedding.Vendors.Application\MyWedding.Vendors.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Vendors\MyWedding.Vendors.Infrastructure\MyWedding.Vendors.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Collaboration\MyWedding.Collaboration.Application\MyWedding.Collaboration.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Collaboration\MyWedding.Collaboration.Infrastructure\MyWedding.Collaboration.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\MyWedding.Infrastructure\MyWedding.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Shared\MyWedding.SharedKernel\MyWedding.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\Core\MyWedding.Domain\MyWedding.Domain.csproj" />
   </ItemGroup>
 
 </Project>

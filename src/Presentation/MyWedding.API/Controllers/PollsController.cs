@@ -2,8 +2,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using MyWedding.Domain.Entities;
-using MyWedding.Infrastructure.Persistence;
+
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -69,7 +69,7 @@ namespace MyWedding.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreatePoll([FromBody] CreatePollRequest request)
         {
-            var command = new MyWedding.Application.Features.Polls.Commands.CreatePoll.CreatePollCommand
+            var command = new MyWedding.Collaboration.Application.Features.Polls.Commands.CreatePoll.CreatePollCommand
             {
                 EventId = request.EventId,
                 Title = request.Title,
@@ -90,7 +90,7 @@ namespace MyWedding.API.Controllers
         [HttpPost("{pollId:guid}/vote")]
         public async Task<IActionResult> Vote(Guid pollId, [FromBody] VoteRequest request)
         {
-            var command = new MyWedding.Application.Features.Polls.Commands.Vote.VoteCommand
+            var command = new MyWedding.Collaboration.Application.Features.Polls.Commands.Vote.VoteCommand
             {
                 PollId = pollId,
                 OptionId = request.OptionId,

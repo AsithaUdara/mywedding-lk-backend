@@ -2,8 +2,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MyWedding.Application.Features.ActivityFeed.Commands.PostComment;
-using MyWedding.Application.Features.ActivityFeed.Queries.GetActivityFeedByEventId;
+
+
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;

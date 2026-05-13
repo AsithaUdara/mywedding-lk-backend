@@ -1,0 +1,9 @@
+global using System;
+global using System.Collections.Generic;
+global using System.Threading.Tasks;
+global using MyWedding.SharedKernel.Entities;
+global using MyWedding.SharedKernel.Exceptions;
+global using MyWedding.SharedKernel.Interfaces;
+global using MyWedding.Domain.Entities;
+global using MyWedding.Domain.Enums;
+global using MyWedding.Domain.Interfaces;

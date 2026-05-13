@@ -1,8 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MyWedding.Application.Features.Invitations.Commands.AcceptInvitation;
-using MyWedding.Application.Features.Invitations.Commands.InviteMember;
+
+
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;

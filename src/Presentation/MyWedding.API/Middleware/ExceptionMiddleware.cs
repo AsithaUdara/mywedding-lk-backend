@@ -1,18 +1,13 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using MyWedding.Application.Common.Exceptions;
+using MyWedding.SharedKernel.Exceptions;
 using System;
-using System.Collections.Generic;
-using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace MyWedding.API.Middleware
 {
-    /// <summary>
-    /// Centralized exception handling middleware for consistent API error responses.
-    /// Handles application-specific and unhandled system exceptions.
-    /// </summary>
     public class ExceptionMiddleware
     {
         private readonly RequestDelegate _next;
@@ -37,35 +32,40 @@ namespace MyWedding.API.Middleware
             }
         }
 
-        private static Task HandleExceptionAsync(HttpContext context, Exception exception)
+        private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
-            var code = HttpStatusCode.InternalServerError;
-            var result = string.Empty;
+            context.Response.ContentType = "application/problem+json";
 
-            switch (exception)
+            var problemDetails = exception switch
             {
-                case BadRequestException badRequestException:
-                    code = HttpStatusCode.BadRequest;
-                    result = JsonSerializer.Serialize(new { message = badRequestException.Message });
-                    break;
-                case NotFoundException notFoundException:
-                    code = HttpStatusCode.NotFound;
-                    result = JsonSerializer.Serialize(new { message = notFoundException.Message });
-                    break;
-                case ForbiddenAccessException forbiddenException:
-                    code = HttpStatusCode.Forbidden;
-                    result = JsonSerializer.Serialize(new { message = forbiddenException.Message });
-                    break;
-                default:
-                    // Generic internal server error
-                    result = JsonSerializer.Serialize(new { message = "An unexpected error occurred on the server.", detail = exception.Message });
-                    break;
+                BaseException baseEx => new ProblemDetails
+                {
+                    Title = baseEx.Title,
+                    Detail = baseEx.Message,
+                    Status = baseEx.StatusCode,
+                    Instance = context.Request.Path
+                },
+                _ => new ProblemDetails
+                {
+                    Title = "Internal Server Error",
+                    Detail = "An unexpected error occurred. Please try again later.",
+                    Status = StatusCodes.Status500InternalServerError,
+                    Instance = context.Request.Path
+                }
+            };
+
+            // Specialized handling for ValidationException to include error list
+            if (exception is ValidationException validationEx)
+            {
+                problemDetails.Extensions["errors"] = validationEx.Errors;
             }
 
-            context.Response.ContentType = "application/json";
-            context.Response.StatusCode = (int)code;
+            context.Response.StatusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
 
-            return context.Response.WriteAsync(result);
+            var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+            var result = JsonSerializer.Serialize(problemDetails, options);
+
+            await context.Response.WriteAsync(result);
         }
     }
 }

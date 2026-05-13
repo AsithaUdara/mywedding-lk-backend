@@ -1,34 +1,44 @@
-// File: src/Presentation/MyWedding.API/Controllers/BudgetController.cs
-
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MyWedding.Application.Features.BudgetCategories.Queries.GetBudgetCategories;
-using MyWedding.Application.Features.Events.Queries.GetBudgetOverview;
-using MyWedding.Application.Features.Events.Queries.GetExpensesByEventId;
-using MyWedding.Application.Features.Expenses.Commands.AddExpense;
-using System;
-using System.Security.Claims;
-using System.Threading.Tasks;
 
+
+
+
+
+
+using System.Security.Claims;
+
+namespace MyWedding.API.Controllers;
+
+/// <summary>
+/// Manages budget-related operations for wedding events, including expense tracking and budget overview.
+/// All endpoints require the caller to be an organizer of the target event.
+/// </summary>
 [ApiController]
-[Authorize] // All endpoints in this controller require authentication
+[Authorize]
 public class BudgetController : ControllerBase
 {
     private readonly IMediator _mediator;
-    private readonly MyWedding.Domain.Interfaces.IEventOrganizerRepository _organizerRepository;
+    private readonly IEventOrganizerRepository _organizerRepository;
 
-    public BudgetController(IMediator mediator, MyWedding.Domain.Interfaces.IEventOrganizerRepository organizerRepository)
+    public BudgetController(IMediator mediator, IEventOrganizerRepository organizerRepository)
     {
         _mediator = mediator;
         _organizerRepository = organizerRepository;
     }
 
-    // GET /api/events/{eventId}/budget
+    private string? GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    /// <summary>
+    /// Retrieves the full budget overview for an event, including allocated amounts and spent totals per category.
+    /// </summary>
+    /// <param name="eventId">The unique identifier of the wedding event.</param>
+    /// <returns>Budget overview data if found.</returns>
     [HttpGet("api/events/{eventId:guid}/budget")]
     public async Task<IActionResult> GetBudgetOverview(Guid eventId)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = GetUserId();
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
         var isMember = await _organizerRepository.IsUserAlreadyOrganizerAsync(eventId, userId);
@@ -39,12 +49,20 @@ public class BudgetController : ControllerBase
         return result is not null ? Ok(result) : NotFound();
     }
 
-    // POST /api/events/{eventId}/expenses
+    /// <summary>
+    /// Adds a new expense entry to an event's budget.
+    /// </summary>
+    /// <param name="eventId">The unique identifier of the wedding event.</param>
+    /// <param name="request">The expense details.</param>
+    /// <returns>201 Created with the new expense ID.</returns>
     [HttpPost("api/events/{eventId:guid}/expenses")]
     public async Task<IActionResult> AddExpense(Guid eventId, [FromBody] AddExpenseRequest request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = GetUserId();
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var isMember = await _organizerRepository.IsUserAlreadyOrganizerAsync(eventId, userId);
+        if (!isMember) return Forbid();
 
         var command = new AddExpenseCommand
         {
@@ -57,10 +75,34 @@ public class BudgetController : ControllerBase
         };
 
         var expenseId = await _mediator.Send(command);
-        return CreatedAtAction(nameof(GetBudgetOverview), new { eventId = eventId }, new { ExpenseId = expenseId });
+        return CreatedAtAction(nameof(GetBudgetOverview), new { eventId }, new { ExpenseId = expenseId });
     }
 
-    // GET /api/budget-categories
+    /// <summary>
+    /// Retrieves all expenses for a specific wedding event.
+    /// Requires the caller to be an organizer of the event.
+    /// </summary>
+    /// <param name="eventId">The unique identifier of the wedding event.</param>
+    /// <returns>A list of expense entries.</returns>
+    [HttpGet("api/events/{eventId:guid}/expenses")]
+    public async Task<IActionResult> GetExpenses(Guid eventId)
+    {
+        var userId = GetUserId();
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        // Security: only organizers of this event can view its expenses
+        var isMember = await _organizerRepository.IsUserAlreadyOrganizerAsync(eventId, userId);
+        if (!isMember) return Forbid();
+
+        var query = new GetExpensesByEventIdQuery(eventId);
+        var expenses = await _mediator.Send(query);
+        return Ok(expenses);
+    }
+
+    /// <summary>
+    /// Retrieves all available budget categories (e.g., Venue, Photography, Catering).
+    /// </summary>
+    /// <returns>A list of budget categories.</returns>
     [HttpGet("api/budget-categories")]
     public async Task<IActionResult> GetBudgetCategories()
     {
@@ -68,17 +110,4 @@ public class BudgetController : ControllerBase
         var categories = await _mediator.Send(query);
         return Ok(categories);
     }
-
-    // GET /api/events/{eventId}/expenses
-    [HttpGet("api/events/{eventId:guid}/expenses")]
-    public async Task<IActionResult> GetExpenses(Guid eventId)
-    {
-        // TODO: Add security check to ensure user is an organizer of this event
-        var query = new GetExpensesByEventIdQuery(eventId);
-        var expenses = await _mediator.Send(query);
-        return Ok(expenses);
-    }
 }
-
-// --- DTOs for the request bodies ---
-public record AddExpenseRequest(string Title, decimal Amount, DateTime ExpenseDate, Guid BudgetCategoryId);
