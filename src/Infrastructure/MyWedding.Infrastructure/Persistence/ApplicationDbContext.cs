@@ -24,6 +24,7 @@ namespace MyWedding.Infrastructure.Persistence
         public DbSet<VendorReview> VendorReviews { get; set; }
         public DbSet<VendorBooking> VendorBookings { get; set; }
         public DbSet<BookingContract> BookingContracts { get; set; }
+        public DbSet<VendorInquiry> VendorInquiries { get; set; }
         
         // Activity Feed DbSet
         public DbSet<ActivityFeedItem> ActivityFeedItems { get; set; }
@@ -133,6 +134,13 @@ namespace MyWedding.Infrastructure.Persistence
                 .HasOne(vr => vr.Reviewer)
                 .WithMany()
                 .HasForeignKey(vr => vr.ReviewerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // VendorInquiry -> Vendor (Many-to-One, restrict delete)
+            modelBuilder.Entity<VendorInquiry>()
+                .HasOne(vi => vi.Vendor)
+                .WithMany(v => v.Inquiries)
+                .HasForeignKey(vi => vi.VendorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // VendorReview -> WeddingEvent (Many-to-One, cascade delete reviews when event is deleted)

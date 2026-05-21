@@ -38,21 +38,59 @@ namespace MyWedding.API.Controllers
                 UserId = userId
             };
 
-            try
+            var bookingId = await _mediator.Send(command);
+            return Ok(new { BookingId = bookingId });
+        }
+        [HttpGet("vendor")]
+        public async Task<IActionResult> GetVendorBookings()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
             {
-                var bookingId = await _mediator.Send(command);
-                return Ok(new { BookingId = bookingId });
+                return Unauthorized();
             }
-            catch (MyWedding.SharedKernel.Exceptions.NotFoundException ex)
+
+            var query = new GetVendorBookingsQuery { VendorUserId = userId };
+            var bookings = await _mediator.Send(query);
+            return Ok(bookings);
+        }
+
+        [HttpGet("event/{eventId}")]
+        public async Task<IActionResult> GetEventBookings(Guid eventId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
             {
-                return NotFound(new { message = ex.Message });
+                return Unauthorized();
             }
-            catch (MyWedding.SharedKernel.Exceptions.ForbiddenAccessException)
+
+            var query = new GetEventBookingsQuery { EventId = eventId, UserId = userId };
+            var bookings = await _mediator.Send(query);
+            return Ok(bookings);
+        }
+
+        [HttpPatch("{id}/status")]
+        public async Task<IActionResult> UpdateBookingStatus(Guid id, [FromBody] UpdateBookingStatusRequest request)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
             {
-                return Forbid();
+                return Unauthorized();
             }
+
+            var command = new UpdateBookingStatusCommand
+            {
+                BookingId = id,
+                NewStatus = request.Status,
+                VendorUserId = userId
+            };
+
+            await _mediator.Send(command);
+            return Ok();
         }
     }
+
+    public record UpdateBookingStatusRequest(MyWedding.Domain.Enums.BookingStatus Status);
 
     public record CreateBookingRequest(
         Guid EventId,

@@ -25,5 +25,6 @@ namespace MyWedding.Domain.Entities
         public ICollection<VendorService> Services { get; set; } = new List<VendorService>();
         public ICollection<VendorReview> Reviews { get; set; } = new List<VendorReview>();
         public ICollection<VendorBooking> Bookings { get; set; } = new List<VendorBooking>();
+        public ICollection<VendorInquiry> Inquiries { get; set; } = new List<VendorInquiry>();
     }
 }

@@ -8,5 +8,8 @@ namespace MyWedding.Domain.Interfaces
     {
         Task AddAsync(VendorBooking booking, CancellationToken cancellationToken = default);
         Task<bool> HasBookingsAsync(Guid serviceId, CancellationToken cancellationToken = default);
+        Task<System.Collections.Generic.IEnumerable<VendorBooking>> GetBookingsByVendorUserIdAsync(string vendorUserId, CancellationToken cancellationToken = default);
+        Task<System.Collections.Generic.IEnumerable<VendorBooking>> GetBookingsByEventIdAsync(Guid eventId, CancellationToken cancellationToken = default);
+        Task<VendorBooking?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     }
 }

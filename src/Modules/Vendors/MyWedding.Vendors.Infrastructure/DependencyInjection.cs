@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using MyWedding.Vendors.Infrastructure.Persistence.Repositories;
+using MyWedding.Infrastructure.Persistence.Repositories;
 using MyWedding.Domain.Interfaces;
 
 namespace MyWedding.Vendors.Infrastructure
@@ -11,6 +11,7 @@ namespace MyWedding.Vendors.Infrastructure
             services.AddScoped<IVendorRepository, VendorRepository>();
             services.AddScoped<IVendorServiceRepository, VendorServiceRepository>();
             services.AddScoped<IVendorBookingRepository, VendorBookingRepository>();
+            services.AddScoped<IVendorInquiryRepository, VendorInquiryRepository>();
             return services;
         }
     }

@@ -27,51 +27,37 @@ namespace MyWedding.API.Controllers
         [HttpPost("invite")]
         public async Task<IActionResult> InviteMember([FromBody] InviteRequest request)
         {
-            try 
+            var command = new InviteMemberCommand
             {
-                var command = new InviteMemberCommand
-                {
-                    EventId = request.EventId,
-                    Email = request.Email,
-                    InvitedById = GetUserId(),
-                    Role = request.Role ?? MyWedding.Domain.Enums.OrganizerRole.Friend,
-                    PermissionLevel = request.PermissionLevel ?? MyWedding.Domain.Enums.PermissionLevel.Editor
-                };
+                EventId = request.EventId,
+                Email = request.Email,
+                InvitedById = GetUserId(),
+                Role = request.Role ?? MyWedding.Domain.Enums.OrganizerRole.Friend,
+                PermissionLevel = request.PermissionLevel ?? MyWedding.Domain.Enums.PermissionLevel.Editor
+            };
 
-                var invitationId = await _mediator.Send(command);
-                return Ok(new { InvitationId = invitationId });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = ex.Message, detail = ex.InnerException?.Message });
-            }
+            var invitationId = await _mediator.Send(command);
+            return Ok(new { InvitationId = invitationId });
         }
 
         // POST /api/invitations/accept
         [HttpPost("accept")]
         public async Task<IActionResult> AcceptInvitation([FromBody] AcceptRequest request)
         {
-            try 
+            var command = new AcceptInvitationCommand
             {
-                var command = new AcceptInvitationCommand
-                {
-                    Token = request.Token,
-                    UserId = GetUserId()
-                };
+                Token = request.Token,
+                UserId = GetUserId()
+            };
 
-                var result = await _mediator.Send(command);
-                
-                if (!result)
-                {
-                    return BadRequest("Invalid or expired invitation token.");
-                }
-
-                return Ok(new { Message = "Invitation accepted successfully." });
-            }
-            catch (Exception ex)
+            var result = await _mediator.Send(command);
+            
+            if (!result)
             {
-                return StatusCode(500, new { message = ex.Message, detail = ex.InnerException?.Message });
+                return BadRequest("Invalid or expired invitation token.");
             }
+
+            return Ok(new { Message = "Invitation accepted successfully." });
         }
     }
 
