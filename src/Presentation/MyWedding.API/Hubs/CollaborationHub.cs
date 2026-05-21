@@ -5,10 +5,35 @@ using System;
 namespace MyWedding.API.Hubs
 {
     /// <summary>
+    /// Strongly-typed client interface for CollaborationHub.
+    /// Each method name becomes the SignalR event name that the frontend listens for.
+    /// </summary>
+    public interface ICollaborationHubClient
+    {
+        /// <summary>Pushes a new chat message payload to the event group.</summary>
+        Task ReceiveMessage(object message);
+
+        /// <summary>Pushes an activity feed item (comment, system log) to the event group.</summary>
+        Task ReceiveActivity(object activity);
+
+        /// <summary>Signals that the checklist/tasks have changed.</summary>
+        Task ChecklistUpdated();
+
+        /// <summary>Signals that a poll was created or a vote was cast.</summary>
+        Task PollsUpdated();
+
+        /// <summary>Signals that the budget/expenses have changed.</summary>
+        Task BudgetUpdated();
+
+        /// <summary>Signals that an invitation was accepted.</summary>
+        Task InvitationAccepted(object data);
+    }
+
+    /// <summary>
     /// SignalR Hub for real-time wedding event collaboration.
     /// Manages user grouping by EventId to allow isolated broadcasts.
     /// </summary>
-    public class CollaborationHub : Hub
+    public class CollaborationHub : Hub<ICollaborationHubClient>
     {
         private readonly ILogger<CollaborationHub> _logger;
 

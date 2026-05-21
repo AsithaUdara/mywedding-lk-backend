@@ -2,6 +2,7 @@
 using MediatR;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Interfaces;
+using MyWedding.SharedKernel.Interfaces;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,17 +12,21 @@ namespace MyWedding.Collaboration.Application.Features.ActivityFeed.Commands.Pos
     public class PostCommentCommandHandler : IRequestHandler<PostCommentCommand, Guid>
     {
         private readonly IActivityFeedRepository _activityFeedRepository;
+        private readonly ICollaborationService _collaborationService;
         private readonly IUnitOfWork _unitOfWork;
 
-        public PostCommentCommandHandler(IActivityFeedRepository activityFeedRepository, IUnitOfWork unitOfWork)
+        public PostCommentCommandHandler(
+            IActivityFeedRepository activityFeedRepository,
+            ICollaborationService collaborationService,
+            IUnitOfWork unitOfWork)
         {
             _activityFeedRepository = activityFeedRepository;
+            _collaborationService = collaborationService;
             _unitOfWork = unitOfWork;
         }
 
         public async Task<Guid> Handle(PostCommentCommand request, CancellationToken cancellationToken)
         {
-            // TODO: Add security check to ensure user is a member of the event
             var newComment = new ActivityFeedItem
             {
                 Id = Guid.NewGuid(),
@@ -34,6 +39,16 @@ namespace MyWedding.Collaboration.Application.Features.ActivityFeed.Commands.Pos
 
             await _activityFeedRepository.AddAsync(newComment, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // Broadcast real-time activity update so all event members see the new comment instantly
+            await _collaborationService.NotifyActivityAsync(request.EventId, new
+            {
+                id = newComment.Id,
+                itemType = newComment.ItemType.ToString(),
+                content = newComment.Content,
+                createdAt = newComment.CreatedAt,
+                userId = newComment.UserId
+            });
 
             return newComment.Id;
         }
