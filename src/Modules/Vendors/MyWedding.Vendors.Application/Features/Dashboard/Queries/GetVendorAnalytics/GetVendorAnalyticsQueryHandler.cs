@@ -1,4 +1,5 @@
 using MediatR;
+using MyWedding.Domain.Enums;
 using MyWedding.Domain.Interfaces;
 using System;
 using System.Linq;
@@ -12,57 +13,88 @@ namespace MyWedding.Vendors.Application.Features.Dashboard.Queries.GetVendorAnal
     {
         private readonly IVendorBookingRepository _bookingRepository;
         private readonly IVendorInquiryRepository _inquiryRepository;
+        private readonly IVendorServiceRepository _serviceRepository;
+        private readonly IVendorRepository _vendorRepository;
 
         public GetVendorAnalyticsQueryHandler(
             IVendorBookingRepository bookingRepository,
-            IVendorInquiryRepository inquiryRepository)
+            IVendorInquiryRepository inquiryRepository,
+            IVendorServiceRepository serviceRepository,
+            IVendorRepository vendorRepository)
         {
             _bookingRepository = bookingRepository;
             _inquiryRepository = inquiryRepository;
+            _serviceRepository = serviceRepository;
+            _vendorRepository = vendorRepository;
         }
 
         public async Task<VendorAnalyticsDto> Handle(GetVendorAnalyticsQuery request, CancellationToken cancellationToken)
         {
-            var bookings = await _bookingRepository.GetBookingsByVendorUserIdAsync(request.VendorId, cancellationToken);
+            var bookings  = await _bookingRepository.GetBookingsByVendorUserIdAsync(request.VendorId, cancellationToken);
             var inquiries = await _inquiryRepository.GetByVendorIdAsync(request.VendorId, cancellationToken);
+            var services  = await _serviceRepository.GetByVendorIdAsync(request.VendorId, cancellationToken);
+            var vendor    = await _vendorRepository.GetByIdAsync(request.VendorId, cancellationToken);
 
-            var totalBookings = bookings.Count();
-            var pendingBookings = bookings.Count(b => b.Status == MyWedding.Domain.Enums.BookingStatus.Pending);
-            var totalEarnings = bookings
-                .Where(b => b.Status == MyWedding.Domain.Enums.BookingStatus.Completed || b.Status == MyWedding.Domain.Enums.BookingStatus.Confirmed)
-                .Sum(b => b.FinalAmount);
+            // --- Services ---
+            var serviceList   = services.ToList();
+            var totalServices  = serviceList.Count;
+            var activeServices = serviceList.Count(s => s.IsActive);
 
-            var totalInquiries = inquiries.Count();
-            var unreadInquiries = inquiries.Count(i => !i.IsRead);
+            // --- Bookings ---
+            var bookingList       = bookings.ToList();
+            var totalBookings     = bookingList.Count;
+            var pendingBookings   = bookingList.Count(b => b.Status == BookingStatus.Pending);
+            var confirmedBookings = bookingList.Count(b => b.Status == BookingStatus.Confirmed);
+            var completedBookings = bookingList.Count(b => b.Status == BookingStatus.Completed);
 
-            // Calculate earnings for the last 6 months
+            // --- Revenue ---
+            var totalRevenue   = bookingList.Where(b => b.Status == BookingStatus.Completed).Sum(b => b.FinalAmount);
+            var pendingRevenue = bookingList.Where(b => b.Status == BookingStatus.Confirmed).Sum(b => b.FinalAmount);
+
+            // --- Ratings (from Vendor entity + Reviews navigation) ---
+            var averageRating = vendor?.AverageRating ?? 0m;
+            var totalReviews  = vendor?.Reviews?.Count ?? 0;
+
+            // --- Inquiries ---
+            var inquiryList    = inquiries.ToList();
+            var totalInquiries  = inquiryList.Count;
+            var unreadInquiries = inquiryList.Count(i => !i.IsRead);
+
+            // --- Monthly earnings trend (last 6 months, completed + confirmed) ---
             var monthlyEarnings = new List<MonthlyEarningsDto>();
             var today = DateTime.UtcNow;
-            
+
             for (int i = 5; i >= 0; i--)
             {
-                var targetMonth = today.AddMonths(-i);
-                var monthEarnings = bookings
-                    .Where(b => (b.Status == MyWedding.Domain.Enums.BookingStatus.Completed || b.Status == MyWedding.Domain.Enums.BookingStatus.Confirmed) 
-                                && b.ServiceDate.Year == targetMonth.Year 
+                var targetMonth  = today.AddMonths(-i);
+                var monthEarnings = bookingList
+                    .Where(b => (b.Status == BookingStatus.Completed || b.Status == BookingStatus.Confirmed)
+                                && b.ServiceDate.Year  == targetMonth.Year
                                 && b.ServiceDate.Month == targetMonth.Month)
                     .Sum(b => b.FinalAmount);
 
                 monthlyEarnings.Add(new MonthlyEarningsDto
                 {
-                    Month = targetMonth.ToString("MMM yyyy"),
+                    Month  = targetMonth.ToString("MMM yyyy"),
                     Amount = monthEarnings
                 });
             }
 
             return new VendorAnalyticsDto
             {
-                TotalBookings = totalBookings,
-                PendingBookings = pendingBookings,
-                TotalEarnings = totalEarnings,
-                TotalInquiries = totalInquiries,
-                UnreadInquiries = unreadInquiries,
-                MonthlyEarnings = monthlyEarnings
+                TotalServices     = totalServices,
+                ActiveServices    = activeServices,
+                TotalBookings     = totalBookings,
+                PendingBookings   = pendingBookings,
+                ConfirmedBookings = confirmedBookings,
+                CompletedBookings = completedBookings,
+                TotalRevenue      = totalRevenue,
+                PendingRevenue    = pendingRevenue,
+                AverageRating     = averageRating,
+                TotalReviews      = totalReviews,
+                TotalInquiries    = totalInquiries,
+                UnreadInquiries   = unreadInquiries,
+                MonthlyEarnings   = monthlyEarnings
             };
         }
     }
