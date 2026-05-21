@@ -1,10 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
-
-
-
+using MyWedding.Vendors.Application.Features.Dashboard.Queries.GetVendorAnalytics;
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -99,6 +96,21 @@ namespace MyWedding.API.Controllers
             var command = new DeleteServiceCommand { Id = id };
             var result = await _mediator.Send(command);
             return result ? Ok() : NotFound();
+        }
+
+        /// <summary>
+        /// Retrieves analytics data for the vendor dashboard.
+        /// </summary>
+        /// <returns>Analytics data including bookings, earnings, and inquiries.</returns>
+        [HttpGet("analytics")]
+        public async Task<IActionResult> GetAnalytics()
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var query = new GetVendorAnalyticsQuery { VendorId = userId };
+            var result = await _mediator.Send(query);
+            return Ok(result);
         }
     }
 }
