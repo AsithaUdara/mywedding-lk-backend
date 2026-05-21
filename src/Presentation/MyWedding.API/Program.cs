@@ -24,6 +24,7 @@ using MyWedding.Vendors.Application;
 using MyWedding.Collaboration.Application;
 using MyWedding.API.Middleware;
 using MyWedding.SharedKernel.Behaviors;
+using MyWedding.Infrastructure.Persistence.Repositories;
 using System.Text.Encodings.Web;
 
 // Enable TLS 1.2 and 1.3 explicitly for Google Auth connectivity
@@ -76,6 +77,7 @@ builder.Services.AddVendorsModule();
 builder.Services.AddCollaborationModule();
 
 builder.Services.AddScoped<ICollaborationService, CollaborationService>();
+builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
 // 6. Initialize Firebase Admin SDK
@@ -179,6 +181,13 @@ public class FirebaseAuthenticationHandler : AuthenticationHandler<Authenticatio
                 new("user_id", firebaseToken.Uid),
                 new("firebase_uid", firebaseToken.Uid)
             };
+
+            // Forward Firebase custom claims (e.g. role = "vendor" | "admin")
+            if (firebaseToken.Claims.TryGetValue("role", out var roleClaim) && roleClaim is string roleValue)
+            {
+                claims.Add(new System.Security.Claims.Claim("role", roleValue));
+                claims.Add(new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, roleValue));
+            }
 
             var identity = new System.Security.Claims.ClaimsIdentity(claims, Scheme.Name);
             var principal = new System.Security.Claims.ClaimsPrincipal(identity);

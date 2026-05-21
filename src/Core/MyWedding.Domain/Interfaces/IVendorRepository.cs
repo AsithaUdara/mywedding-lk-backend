@@ -9,6 +9,8 @@ namespace MyWedding.Domain.Interfaces
     {
         Task<Vendor?> GetByIdAsync(string vendorId, CancellationToken cancellationToken = default);
         Task<IEnumerable<Vendor>> GetAllAsync(CancellationToken cancellationToken = default);
+        Task<IEnumerable<Vendor>> GetPendingVendorsAsync(CancellationToken cancellationToken = default);
         Task AddAsync(Vendor vendor, CancellationToken cancellationToken = default);
+        void Update(Vendor vendor);
     }
 }

@@ -42,9 +42,25 @@ namespace MyWedding.Vendors.Infrastructure.Persistence.Repositories
             return await query.ToListAsync(cancellationToken);
         }
 
+        public async Task<IEnumerable<Vendor>> GetPendingVendorsAsync(CancellationToken cancellationToken = default)
+        {
+            return await _context.Vendors
+                .Where(v => v.VerificationStatus == MyWedding.Domain.Enums.VerificationStatus.Pending)
+                .Include(v => v.User)
+                .Include(v => v.PrimaryCategory)
+                .AsNoTracking()
+                .OrderBy(v => v.BusinessName)
+                .ToListAsync(cancellationToken);
+        }
+
         public async Task AddAsync(Vendor vendor, CancellationToken cancellationToken = default)
         {
             await _context.Vendors.AddAsync(vendor, cancellationToken);
+        }
+
+        public void Update(Vendor vendor)
+        {
+            _context.Vendors.Update(vendor);
         }
     }
 }
