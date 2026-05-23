@@ -1,6 +1,10 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MyWedding.Domain.Entities;
+using MyWedding.Domain.Enums;
+using MyWedding.Infrastructure.Persistence;
 using MyWedding.Vendors.Application.Features.Dashboard.Queries.GetVendorAnalytics;
 using System;
 using System.Security.Claims;
@@ -17,10 +21,12 @@ namespace MyWedding.API.Controllers
     public class VendorDashboardController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly ApplicationDbContext _db;
 
-        public VendorDashboardController(IMediator mediator)
+        public VendorDashboardController(IMediator mediator, ApplicationDbContext db)
         {
             _mediator = mediator;
+            _db = db;
         }
 
         private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -112,5 +118,57 @@ namespace MyWedding.API.Controllers
             var result = await _mediator.Send(query);
             return Ok(result);
         }
+
+        [HttpGet("subscription")]
+        public async Task<IActionResult> GetSubscription(CancellationToken cancellationToken)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var sub = await _db.VendorSubscriptions
+                .AsNoTracking()
+                .Where(s => s.VendorId == userId && s.Status == SubscriptionStatus.Active)
+                .OrderByDescending(s => s.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (sub is null)
+            {
+                return Ok(new { tier = SubscriptionPlanTier.Free.ToString(), monthlyFee = 0m, status = SubscriptionStatus.Active.ToString() });
+            }
+
+            return Ok(new { tier = sub.Tier.ToString(), monthlyFee = sub.MonthlyFee, status = sub.Status.ToString() });
+        }
+
+        [HttpPost("subscription")]
+        public async Task<IActionResult> SetSubscription([FromBody] VendorSelfSubscriptionRequest request, CancellationToken cancellationToken)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var existing = await _db.VendorSubscriptions
+                .Where(s => s.VendorId == userId && s.Status == SubscriptionStatus.Active)
+                .ToListAsync(cancellationToken);
+            foreach (var sub in existing)
+            {
+                sub.Status = SubscriptionStatus.Cancelled;
+                sub.EndsAt = DateTime.UtcNow;
+            }
+
+            await _db.VendorSubscriptions.AddAsync(new VendorSubscription
+            {
+                Id = Guid.NewGuid(),
+                VendorId = userId,
+                Tier = request.Tier,
+                Status = SubscriptionStatus.Active,
+                MonthlyFee = request.MonthlyFee,
+                StartsAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow
+            }, cancellationToken);
+
+            await _db.SaveChangesAsync(cancellationToken);
+            return Ok(new { message = "Vendor subscription updated.", tier = request.Tier.ToString() });
+        }
     }
 }
+
+public record VendorSelfSubscriptionRequest(SubscriptionPlanTier Tier, decimal MonthlyFee);

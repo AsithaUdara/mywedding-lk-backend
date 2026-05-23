@@ -1,6 +1,9 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MyWedding.Domain.Enums;
+using MyWedding.Infrastructure.Persistence;
 
 
 
@@ -16,10 +19,12 @@ namespace MyWedding.API.Controllers;
 public class VendorsController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly ApplicationDbContext _db;
 
-    public VendorsController(IMediator mediator)
+    public VendorsController(IMediator mediator, ApplicationDbContext db)
     {
         _mediator = mediator;
+        _db = db;
     }
 
     /// <summary>
@@ -33,7 +38,50 @@ public class VendorsController : ControllerBase
     public async Task<IActionResult> GetVendors([FromQuery] GetVendorsQuery query)
     {
         var vendors = await _mediator.Send(query);
-        return Ok(vendors);
+        var vendorIds = vendors.Select(v => v.UserId).ToList();
+        var activeSubscriptions = await _db.VendorSubscriptions
+            .Where(s => vendorIds.Contains(s.VendorId) && s.Status == SubscriptionStatus.Active)
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync();
+
+        var subscriptionByVendor = activeSubscriptions
+            .GroupBy(s => s.VendorId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var tierWeight = new Dictionary<SubscriptionPlanTier, int>
+        {
+            [SubscriptionPlanTier.Sponsored] = 3,
+            [SubscriptionPlanTier.Featured] = 2,
+            [SubscriptionPlanTier.Free] = 1,
+            [SubscriptionPlanTier.PlannerPro] = 1
+        };
+
+        var ranked = vendors
+            .Select(v =>
+            {
+                var tier = subscriptionByVendor.TryGetValue(v.UserId, out var sub)
+                    ? sub.Tier
+                    : SubscriptionPlanTier.Free;
+                return new
+                {
+                    v.UserId,
+                    v.BusinessName,
+                    v.BusinessDescription,
+                    v.WebsiteUrl,
+                    v.City,
+                    v.VerificationStatus,
+                    v.AverageRating,
+                    v.CategoryName,
+                    premiumTier = tier.ToString(),
+                    isSponsored = tier == SubscriptionPlanTier.Sponsored,
+                    isFeatured = tier == SubscriptionPlanTier.Featured
+                };
+            })
+            .OrderByDescending(v => tierWeight.TryGetValue(Enum.Parse<SubscriptionPlanTier>(v.premiumTier), out var weight) ? weight : 1)
+            .ThenByDescending(v => v.AverageRating)
+            .ToList();
+
+        return Ok(ranked);
     }
 
     /// <summary>

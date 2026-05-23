@@ -25,6 +25,14 @@ namespace MyWedding.Infrastructure.Persistence
         public DbSet<VendorBooking> VendorBookings { get; set; }
         public DbSet<BookingContract> BookingContracts { get; set; }
         public DbSet<VendorInquiry> VendorInquiries { get; set; }
+        public DbSet<WeddingPlanner> WeddingPlanners { get; set; }
+        public DbSet<PlannerClientEvent> PlannerClientEvents { get; set; }
+        public DbSet<BookingPaymentTransaction> BookingPaymentTransactions { get; set; }
+        public DbSet<CommissionSettlement> CommissionSettlements { get; set; }
+        public DbSet<VendorSubscription> VendorSubscriptions { get; set; }
+        public DbSet<PlannerSubscription> PlannerSubscriptions { get; set; }
+        public DbSet<EventItinerary> EventItineraries { get; set; }
+        public DbSet<EventItineraryItem> EventItineraryItems { get; set; }
         
         // Activity Feed DbSet
         public DbSet<ActivityFeedItem> ActivityFeedItems { get; set; }
@@ -150,6 +158,38 @@ namespace MyWedding.Infrastructure.Persistence
                 .HasForeignKey(vr => vr.EventId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // ========== PLANNER RELATIONSHIPS ==========
+            modelBuilder.Entity<WeddingPlanner>()
+                .HasKey(p => p.UserId);
+
+            modelBuilder.Entity<WeddingPlanner>()
+                .HasOne(p => p.User)
+                .WithOne()
+                .HasForeignKey<WeddingPlanner>(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PlannerClientEvent>()
+                .HasOne(pce => pce.Planner)
+                .WithMany(p => p.ClientEvents)
+                .HasForeignKey(pce => pce.PlannerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PlannerClientEvent>()
+                .HasOne(pce => pce.WeddingEvent)
+                .WithMany()
+                .HasForeignKey(pce => pce.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PlannerClientEvent>()
+                .HasOne(pce => pce.ClientUser)
+                .WithMany()
+                .HasForeignKey(pce => pce.ClientUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PlannerClientEvent>()
+                .HasIndex(pce => new { pce.PlannerId, pce.EventId })
+                .IsUnique();
+
             // ========== BOOKING & CONTRACT RELATIONSHIPS ==========
 
             // VendorBooking -> WeddingEvent (Many-to-One)
@@ -180,6 +220,38 @@ namespace MyWedding.Infrastructure.Persistence
                 .HasForeignKey<BookingContract>(c => c.Id)
                 .IsRequired(false);
 
+            modelBuilder.Entity<BookingPaymentTransaction>()
+                .HasOne(t => t.Booking)
+                .WithMany()
+                .HasForeignKey(t => t.BookingId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<BookingPaymentTransaction>()
+                .HasIndex(t => t.IdempotencyKey)
+                .IsUnique();
+
+            modelBuilder.Entity<CommissionSettlement>()
+                .HasOne(c => c.Booking)
+                .WithMany()
+                .HasForeignKey(c => c.BookingId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CommissionSettlement>()
+                .HasIndex(c => c.BookingId)
+                .IsUnique();
+
+            modelBuilder.Entity<VendorSubscription>()
+                .HasOne(s => s.Vendor)
+                .WithMany()
+                .HasForeignKey(s => s.VendorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PlannerSubscription>()
+                .HasOne(s => s.Planner)
+                .WithMany(p => p.Subscriptions)
+                .HasForeignKey(s => s.PlannerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // ========== DECIMAL PRECISION CONFIGURATION ==========
 
             // Financial values
@@ -203,6 +275,34 @@ namespace MyWedding.Infrastructure.Persistence
             // Booking financial values
             modelBuilder.Entity<VendorBooking>()
                 .Property(b => b.FinalAmount)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<BookingPaymentTransaction>()
+                .Property(t => t.Amount)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<CommissionSettlement>()
+                .Property(c => c.GrossAmount)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<CommissionSettlement>()
+                .Property(c => c.CommissionAmount)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<CommissionSettlement>()
+                .Property(c => c.VendorNetAmount)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<CommissionSettlement>()
+                .Property(c => c.CommissionRate)
+                .HasColumnType("decimal(5,4)");
+
+            modelBuilder.Entity<VendorSubscription>()
+                .Property(s => s.MonthlyFee)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<PlannerSubscription>()
+                .Property(s => s.MonthlyFee)
                 .HasColumnType("decimal(18,2)");
 
             // --- NEW CONFIGURATION FOR ACTIVITYFEEDITEM ---
@@ -314,6 +414,18 @@ namespace MyWedding.Infrastructure.Persistence
             modelBuilder.Entity<EventInvitation>()
                 .HasIndex(i => i.Token)
                 .IsUnique();
+
+            modelBuilder.Entity<EventItinerary>()
+                .HasOne(i => i.WeddingEvent)
+                .WithMany()
+                .HasForeignKey(i => i.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EventItineraryItem>()
+                .HasOne(i => i.Itinerary)
+                .WithMany(i => i.Items)
+                .HasForeignKey(i => i.ItineraryId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }
