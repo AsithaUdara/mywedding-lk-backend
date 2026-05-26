@@ -11,7 +11,11 @@ namespace MyWedding.Domain.Entities
         public decimal BasePrice { get; set; }
         public PricingType PricingType { get; set; }
         public bool IsActive { get; set; } = true;
-        
+        public string? PrimaryImageUrl { get; set; }
+        public string? GalleryUrlsJson { get; set; }
+        public string? Tagline { get; set; }
+        public string? ListingDetailsJson { get; set; }
+
         // Foreign Key to Vendor
         public required string VendorId { get; set; }
         public Vendor? Vendor { get; set; }

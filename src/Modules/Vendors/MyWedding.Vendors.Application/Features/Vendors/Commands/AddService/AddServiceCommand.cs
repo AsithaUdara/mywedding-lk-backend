@@ -13,5 +13,9 @@ namespace MyWedding.Vendors.Application.Features.Vendors.Commands.AddService
         public PricingType PricingType { get; set; }
         public Guid CategoryId { get; set; }
         public bool IsActive { get; set; } = true;
+        public string? PrimaryImageUrl { get; set; }
+        public List<string>? GalleryUrls { get; set; }
+        public string? Tagline { get; set; }
+        public string? ListingDetailsJson { get; set; }
     }
 }

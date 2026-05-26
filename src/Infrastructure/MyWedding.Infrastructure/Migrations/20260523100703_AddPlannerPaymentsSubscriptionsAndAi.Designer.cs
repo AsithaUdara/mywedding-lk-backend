@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MyWedding.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using MyWedding.Infrastructure.Persistence;
 namespace MyWedding.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260523100703_AddPlannerPaymentsSubscriptionsAndAi")]
+    partial class AddPlannerPaymentsSubscriptionsAndAi
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -671,15 +674,6 @@ namespace MyWedding.Infrastructure.Migrations
                     b.Property<string>("City")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ContactPhone")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CoverImageUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("GalleryUrlsJson")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<Guid?>("PrimaryCategoryId")
                         .HasColumnType("uniqueidentifier");
 
@@ -697,37 +691,6 @@ namespace MyWedding.Infrastructure.Migrations
                     b.HasIndex("PrimaryCategoryId");
 
                     b.ToTable("Vendors");
-                });
-
-            modelBuilder.Entity("MyWedding.Domain.Entities.VendorBillingProfile", b =>
-                {
-                    b.Property<string>("VendorId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("CardBrand")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CardholderName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<byte?>("ExpiryMonth")
-                        .HasColumnType("tinyint");
-
-                    b.Property<short?>("ExpiryYear")
-                        .HasColumnType("smallint");
-
-                    b.Property<string>("Last4")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PayHerePaymentMethod")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("VendorId");
-
-                    b.ToTable("VendorBillingProfiles");
                 });
 
             modelBuilder.Entity("MyWedding.Domain.Entities.VendorBooking", b =>
@@ -876,29 +839,17 @@ namespace MyWedding.Infrastructure.Migrations
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("GalleryUrlsJson")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
-                    b.Property<string>("ListingDetailsJson")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("PricingType")
                         .HasColumnType("int");
-
-                    b.Property<string>("PrimaryImageUrl")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ServiceDescription")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ServiceName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Tagline")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("VendorId")
@@ -947,39 +898,6 @@ namespace MyWedding.Infrastructure.Migrations
                     b.HasIndex("VendorId");
 
                     b.ToTable("VendorSubscriptions");
-                });
-
-            modelBuilder.Entity("MyWedding.Domain.Entities.VendorSubscriptionCheckout", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("PaidAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Tier")
-                        .HasColumnType("int");
-
-                    b.Property<string>("VendorId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("VendorId");
-
-                    b.ToTable("VendorSubscriptionCheckouts");
                 });
 
             modelBuilder.Entity("MyWedding.Domain.Entities.WeddingEvent", b =>
@@ -1365,17 +1283,6 @@ namespace MyWedding.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("MyWedding.Domain.Entities.VendorBillingProfile", b =>
-                {
-                    b.HasOne("MyWedding.Domain.Entities.Vendor", "Vendor")
-                        .WithOne()
-                        .HasForeignKey("MyWedding.Domain.Entities.VendorBillingProfile", "VendorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Vendor");
-                });
-
             modelBuilder.Entity("MyWedding.Domain.Entities.VendorBooking", b =>
                 {
                     b.HasOne("MyWedding.Domain.Entities.User", "BookedBy")
@@ -1465,17 +1372,6 @@ namespace MyWedding.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("MyWedding.Domain.Entities.VendorSubscription", b =>
-                {
-                    b.HasOne("MyWedding.Domain.Entities.Vendor", "Vendor")
-                        .WithMany()
-                        .HasForeignKey("VendorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Vendor");
-                });
-
-            modelBuilder.Entity("MyWedding.Domain.Entities.VendorSubscriptionCheckout", b =>
                 {
                     b.HasOne("MyWedding.Domain.Entities.Vendor", "Vendor")
                         .WithMany()

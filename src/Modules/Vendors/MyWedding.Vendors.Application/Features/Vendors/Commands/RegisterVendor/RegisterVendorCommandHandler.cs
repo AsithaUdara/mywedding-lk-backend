@@ -69,6 +69,7 @@ namespace MyWedding.Vendors.Application.Features.Vendors.Commands.RegisterVendor
             {
                 UserId = request.UserId,
                 BusinessName = request.BusinessName,
+                ContactPhone = request.ContactPhone?.Trim(),
                 City = request.City,
                 PrimaryCategoryId = categoryId,
                 VerificationStatus = VerificationStatus.Pending,

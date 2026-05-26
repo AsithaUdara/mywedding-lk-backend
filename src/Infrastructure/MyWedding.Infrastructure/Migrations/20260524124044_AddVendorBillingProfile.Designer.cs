@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MyWedding.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using MyWedding.Infrastructure.Persistence;
 namespace MyWedding.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260524124044_AddVendorBillingProfile")]
+    partial class AddVendorBillingProfile
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -674,12 +677,6 @@ namespace MyWedding.Infrastructure.Migrations
                     b.Property<string>("ContactPhone")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("CoverImageUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("GalleryUrlsJson")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<Guid?>("PrimaryCategoryId")
                         .HasColumnType("uniqueidentifier");
 
@@ -876,29 +873,17 @@ namespace MyWedding.Infrastructure.Migrations
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("GalleryUrlsJson")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
-                    b.Property<string>("ListingDetailsJson")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("PricingType")
                         .HasColumnType("int");
-
-                    b.Property<string>("PrimaryImageUrl")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ServiceDescription")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ServiceName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Tagline")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("VendorId")

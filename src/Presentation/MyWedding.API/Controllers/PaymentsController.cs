@@ -111,9 +111,17 @@ public class PaymentsController : ControllerBase
             return Unauthorized(new { message = "Invalid webhook signature." });
         }
 
-        if (!Guid.TryParse(request.order_id, out var bookingId))
+        if (!Guid.TryParse(request.order_id, out var orderId))
             return BadRequest(new { message = "Invalid order_id." });
 
+        var subscriptionCheckout = await _db.VendorSubscriptionCheckouts
+            .FirstOrDefaultAsync(c => c.Id == orderId, cancellationToken);
+        if (subscriptionCheckout is not null)
+        {
+            return await HandleVendorSubscriptionWebhook(subscriptionCheckout, request, cancellationToken);
+        }
+
+        var bookingId = orderId;
         var booking = await _db.VendorBookings
             .Include(b => b.VendorService)
             .FirstOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
@@ -213,6 +221,70 @@ public class PaymentsController : ControllerBase
             paymentStatus = tx?.Status.ToString() ?? "None",
             paidAt = tx?.PaidAt
         });
+    }
+
+    private async Task<IActionResult> HandleVendorSubscriptionWebhook(
+        VendorSubscriptionCheckout checkout,
+        PayHereWebhookRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (checkout.Status == "Paid")
+            return Ok(new { message = "Subscription payment already processed." });
+
+        if (request.status_code == "2")
+        {
+            checkout.Status = "Paid";
+            checkout.PaidAt = DateTime.UtcNow;
+
+            var existing = await _db.VendorSubscriptions
+                .Where(s => s.VendorId == checkout.VendorId && s.Status == SubscriptionStatus.Active)
+                .ToListAsync(cancellationToken);
+            foreach (var sub in existing)
+            {
+                sub.Status = SubscriptionStatus.Cancelled;
+                sub.EndsAt = DateTime.UtcNow;
+            }
+
+            await _db.VendorSubscriptions.AddAsync(new VendorSubscription
+            {
+                Id = Guid.NewGuid(),
+                VendorId = checkout.VendorId,
+                Tier = checkout.Tier,
+                Status = SubscriptionStatus.Active,
+                MonthlyFee = checkout.Amount,
+                StartsAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+            }, cancellationToken);
+
+            var profile = await _db.VendorBillingProfiles
+                .FirstOrDefaultAsync(p => p.VendorId == checkout.VendorId, cancellationToken);
+            if (profile is null)
+            {
+                profile = new VendorBillingProfile { VendorId = checkout.VendorId };
+                await _db.VendorBillingProfiles.AddAsync(profile, cancellationToken);
+            }
+
+            profile.PayHerePaymentMethod = request.method;
+            profile.CardBrand = InferCardBrand(request.method);
+            profile.Last4 ??= "0000";
+            profile.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync(cancellationToken);
+            return Ok(new { message = "Vendor subscription payment processed." });
+        }
+
+        checkout.Status = "Failed";
+        await _db.SaveChangesAsync(cancellationToken);
+        return Ok(new { message = "Vendor subscription payment failed." });
+    }
+
+    private static string? InferCardBrand(string? method)
+    {
+        if (string.IsNullOrWhiteSpace(method)) return null;
+        var m = method.ToUpperInvariant();
+        if (m.Contains("VISA")) return "Visa";
+        if (m.Contains("MASTER")) return "Mastercard";
+        return method;
     }
 
     private bool IsWebhookSignatureValid(PayHereWebhookRequest request)

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MyWedding.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using MyWedding.Infrastructure.Persistence;
 namespace MyWedding.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260524160852_AddVendorServiceImages")]
+    partial class AddVendorServiceImages
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -882,9 +885,6 @@ namespace MyWedding.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
-                    b.Property<string>("ListingDetailsJson")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("PricingType")
                         .HasColumnType("int");
 
@@ -896,9 +896,6 @@ namespace MyWedding.Infrastructure.Migrations
 
                     b.Property<string>("ServiceName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Tagline")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("VendorId")

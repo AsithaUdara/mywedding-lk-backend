@@ -47,7 +47,7 @@ namespace MyWedding.API.Controllers
         }
 
         // Endpoint for vendors to get their inquiries
-        [Authorize(Policy = "VendorOnly")]
+        [Authorize]
         [HttpGet("vendor/dashboard/inquiries")]
         public async Task<IActionResult> GetVendorInquiries()
         {
@@ -61,7 +61,7 @@ namespace MyWedding.API.Controllers
         }
 
         // Endpoint for vendors to mark an inquiry as read
-        [Authorize(Policy = "VendorOnly")]
+        [Authorize]
         [HttpPatch("vendor/dashboard/inquiries/{id}/read")]
         public async Task<IActionResult> MarkInquiryAsRead(Guid id)
         {

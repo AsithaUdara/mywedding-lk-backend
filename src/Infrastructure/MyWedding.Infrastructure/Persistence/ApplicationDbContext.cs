@@ -30,6 +30,8 @@ namespace MyWedding.Infrastructure.Persistence
         public DbSet<BookingPaymentTransaction> BookingPaymentTransactions { get; set; }
         public DbSet<CommissionSettlement> CommissionSettlements { get; set; }
         public DbSet<VendorSubscription> VendorSubscriptions { get; set; }
+        public DbSet<VendorBillingProfile> VendorBillingProfiles { get; set; }
+        public DbSet<VendorSubscriptionCheckout> VendorSubscriptionCheckouts { get; set; }
         public DbSet<PlannerSubscription> PlannerSubscriptions { get; set; }
         public DbSet<EventItinerary> EventItineraries { get; set; }
         public DbSet<EventItineraryItem> EventItineraryItems { get; set; }
@@ -246,6 +248,21 @@ namespace MyWedding.Infrastructure.Persistence
                 .HasForeignKey(s => s.VendorId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<VendorBillingProfile>()
+                .HasKey(p => p.VendorId);
+
+            modelBuilder.Entity<VendorBillingProfile>()
+                .HasOne(p => p.Vendor)
+                .WithOne()
+                .HasForeignKey<VendorBillingProfile>(p => p.VendorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VendorSubscriptionCheckout>()
+                .HasOne(c => c.Vendor)
+                .WithMany()
+                .HasForeignKey(c => c.VendorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             modelBuilder.Entity<PlannerSubscription>()
                 .HasOne(s => s.Planner)
                 .WithMany(p => p.Subscriptions)
@@ -299,6 +316,10 @@ namespace MyWedding.Infrastructure.Persistence
 
             modelBuilder.Entity<VendorSubscription>()
                 .Property(s => s.MonthlyFee)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<VendorSubscriptionCheckout>()
+                .Property(c => c.Amount)
                 .HasColumnType("decimal(18,2)");
 
             modelBuilder.Entity<PlannerSubscription>()

@@ -37,6 +37,7 @@ namespace MyWedding.Vendors.Infrastructure.Persistence.Repositories
                 .Include(v => v.User)
                 .Include(v => v.Services)
                     .ThenInclude(s => s.Category)
+                .Include(v => v.Reviews)
                 .AsNoTracking();
 
             return await query.ToListAsync(cancellationToken);

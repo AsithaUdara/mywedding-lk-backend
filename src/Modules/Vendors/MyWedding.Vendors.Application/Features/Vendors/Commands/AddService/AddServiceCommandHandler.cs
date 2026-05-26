@@ -1,5 +1,5 @@
 using MediatR;
-
+using MyWedding.Domain.Helpers;
 
 using System;
 using System.Threading;
@@ -29,7 +29,11 @@ namespace MyWedding.Vendors.Application.Features.Vendors.Commands.AddService
                 BasePrice = request.BasePrice,
                 PricingType = request.PricingType,
                 CategoryId = request.CategoryId,
-                IsActive = request.IsActive
+                IsActive = request.IsActive,
+                PrimaryImageUrl = request.PrimaryImageUrl,
+                GalleryUrlsJson = GalleryUrlHelper.Serialize(request.GalleryUrls),
+                Tagline = request.Tagline,
+                ListingDetailsJson = request.ListingDetailsJson
             };
 
             await _serviceRepository.AddAsync(service, cancellationToken);

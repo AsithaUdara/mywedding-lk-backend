@@ -13,5 +13,6 @@ namespace MyWedding.Vendors.Application.Features.Vendors.Commands.RegisterVendor
         public required string BusinessName { get; set; }
         public required string Category { get; set; } // The ID as string from frontend
         public required string City { get; set; }
+        public string? ContactPhone { get; set; }
     }
 }

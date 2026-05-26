@@ -14,5 +14,9 @@ namespace MyWedding.Vendors.Application.Features.Vendors.Queries.GetVendorServic
         public required string CategoryName { get; set; }
         public Guid CategoryId { get; set; }
         public bool IsActive { get; set; }
+        public string? PrimaryImageUrl { get; set; }
+        public IReadOnlyList<string> GalleryUrls { get; set; } = [];
+        public string? Tagline { get; set; }
+        public string? ListingDetailsJson { get; set; }
     }
 }

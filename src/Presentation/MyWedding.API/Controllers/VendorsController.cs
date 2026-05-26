@@ -68,10 +68,15 @@ public class VendorsController : ControllerBase
                     v.BusinessName,
                     v.BusinessDescription,
                     v.WebsiteUrl,
+                    v.ContactPhone,
                     v.City,
                     v.VerificationStatus,
                     v.AverageRating,
+                    v.TotalReviews,
+                    v.MinPrice,
                     v.CategoryName,
+                    v.PrimaryImageUrl,
+                    v.ImageUrls,
                     premiumTier = tier.ToString(),
                     isSponsored = tier == SubscriptionPlanTier.Sponsored,
                     isFeatured = tier == SubscriptionPlanTier.Featured
@@ -82,6 +87,20 @@ public class VendorsController : ControllerBase
             .ToList();
 
         return Ok(ranked);
+    }
+
+    /// <summary>
+    /// Lists vendor categories for service creation and filtering.
+    /// </summary>
+    [HttpGet("categories")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetCategories()
+    {
+        var categories = await _db.VendorCategories
+            .OrderBy(c => c.Name)
+            .Select(c => new { c.Id, c.Name })
+            .ToListAsync();
+        return Ok(categories);
     }
 
     /// <summary>

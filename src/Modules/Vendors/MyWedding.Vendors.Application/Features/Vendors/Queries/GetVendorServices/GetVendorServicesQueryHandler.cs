@@ -1,5 +1,6 @@
 // File: src/Core/MyWedding.Application/Features/Vendors/Queries/GetVendorServices/GetVendorServicesQueryHandler.cs
 using MediatR;
+using MyWedding.Domain.Helpers;
 
 using System.Collections.Generic;
 using System.Linq;
@@ -30,7 +31,11 @@ namespace MyWedding.Vendors.Application.Features.Vendors.Queries.GetVendorServic
                 PricingType = s.PricingType,
                 CategoryId = s.CategoryId,
                 CategoryName = s.Category?.Name ?? "Unknown",
-                IsActive = s.IsActive
+                IsActive = s.IsActive,
+                PrimaryImageUrl = s.PrimaryImageUrl,
+                GalleryUrls = GalleryUrlHelper.Parse(s.GalleryUrlsJson),
+                Tagline = s.Tagline,
+                ListingDetailsJson = s.ListingDetailsJson
             });
         }
     }

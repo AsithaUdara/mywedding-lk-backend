@@ -1,4 +1,7 @@
 using MediatR;
+using MyWedding.Domain.Enums;
+using MyWedding.Domain.Helpers;
+using MyWedding.Vendors.Application.Helpers;
 
 using System;
 using System.Linq;
@@ -26,28 +29,41 @@ namespace MyWedding.Vendors.Application.Features.Vendors.Queries.GetVendorById
                 throw new NotFoundException(nameof(Vendor), request.VendorId);
             }
 
-            // Map to DTOs, including nested data like Services and Reviews
+            if (vendor.VerificationStatus != VerificationStatus.Verified)
+            {
+                throw new NotFoundException(nameof(Vendor), request.VendorId);
+            }
+
+            var activeServices = VendorMediaHelper.ActiveServices(vendor).ToList();
+
             var vendorDetailDto = new VendorDetailDto
             {
                 UserId = vendor.UserId,
                 BusinessName = vendor.BusinessName,
                 BusinessDescription = vendor.BusinessDescription,
                 WebsiteUrl = vendor.WebsiteUrl,
+                ContactPhone = vendor.ContactPhone,
                 City = vendor.City ?? "N/A",
                 VerificationStatus = vendor.VerificationStatus,
                 AverageRating = vendor.AverageRating,
-                Services = vendor.Services.Select(s => new VendorServiceDto(
-                    s.Id, 
-                    s.ServiceName, 
-                    s.ServiceDescription ?? "", 
-                    s.BasePrice, 
-                    s.PricingType
+                CoverImageUrl = vendor.CoverImageUrl,
+                GalleryImageUrls = VendorMediaHelper.ResolveGalleryUrls(vendor, activeServices),
+                Services = activeServices.Select(s => new VendorServiceDto(
+                    s.Id,
+                    s.ServiceName,
+                    s.ServiceDescription ?? "",
+                    s.BasePrice,
+                    s.PricingType,
+                    s.PrimaryImageUrl,
+                    GalleryUrlHelper.Parse(s.GalleryUrlsJson),
+                    s.Tagline,
+                    s.ListingDetailsJson
                 )),
                 Reviews = vendor.Reviews.Select(r => new VendorReviewDto(
-                    r.Id, 
-                    (r.Reviewer?.FirstName ?? "") + " " + (r.Reviewer?.LastName ?? ""), 
-                    r.Rating, 
-                    r.ReviewContent ?? "", 
+                    r.Id,
+                    (r.Reviewer?.FirstName ?? "") + " " + (r.Reviewer?.LastName ?? ""),
+                    r.Rating,
+                    r.ReviewContent ?? "",
                     r.CreatedAt
                 ))
             };

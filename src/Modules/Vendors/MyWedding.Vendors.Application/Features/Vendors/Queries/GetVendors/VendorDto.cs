@@ -5,9 +5,14 @@ namespace MyWedding.Vendors.Application.Features.Vendors.Queries.GetVendors
         string BusinessName,
         string? BusinessDescription,
         string? WebsiteUrl,
+        string? ContactPhone,
         string City,
         string VerificationStatus, // Enum as string
         decimal AverageRating,
-        string CategoryName // Added to show category directly
+        int TotalReviews,
+        decimal MinPrice,
+        string CategoryName,
+        string? PrimaryImageUrl,
+        IReadOnlyList<string> ImageUrls
     );
 }

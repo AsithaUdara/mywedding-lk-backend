@@ -1,6 +1,6 @@
 // File: src/Core/MyWedding.Application/Features/Vendors/Commands/UpdateService/UpdateServiceCommandHandler.cs
 using MediatR;
-
+using MyWedding.Domain.Helpers;
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,6 +32,10 @@ namespace MyWedding.Vendors.Application.Features.Vendors.Commands.UpdateService
             service.PricingType = request.PricingType;
             service.CategoryId = request.CategoryId;
             service.IsActive = request.IsActive;
+            service.PrimaryImageUrl = request.PrimaryImageUrl;
+            service.GalleryUrlsJson = GalleryUrlHelper.Serialize(request.GalleryUrls);
+            service.Tagline = request.Tagline;
+            service.ListingDetailsJson = request.ListingDetailsJson;
 
             _serviceRepository.Update(service);
             await _unitOfWork.SaveChangesAsync(cancellationToken);

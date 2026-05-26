@@ -7,6 +7,7 @@ using MyWedding.Domain.Enums;
 using MyWedding.Infrastructure.Persistence;
 using MyWedding.Vendors.Application.Features.Dashboard.Queries.GetVendorAnalytics;
 using System;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -22,11 +23,13 @@ namespace MyWedding.API.Controllers
     {
         private readonly IMediator _mediator;
         private readonly ApplicationDbContext _db;
+        private readonly IConfiguration _configuration;
 
-        public VendorDashboardController(IMediator mediator, ApplicationDbContext db)
+        public VendorDashboardController(IMediator mediator, ApplicationDbContext db, IConfiguration configuration)
         {
             _mediator = mediator;
             _db = db;
+            _configuration = configuration;
         }
 
         private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -168,7 +171,121 @@ namespace MyWedding.API.Controllers
             await _db.SaveChangesAsync(cancellationToken);
             return Ok(new { message = "Vendor subscription updated.", tier = request.Tier.ToString() });
         }
+
+        [HttpGet("billing-profile")]
+        public async Task<IActionResult> GetBillingProfile(CancellationToken cancellationToken)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var profile = await _db.VendorBillingProfiles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.VendorId == userId, cancellationToken);
+
+            if (profile is null)
+            {
+                return Ok(new { hasPaymentMethod = false });
+            }
+
+            return Ok(new
+            {
+                hasPaymentMethod = !string.IsNullOrEmpty(profile.Last4),
+                cardholderName = profile.CardholderName,
+                cardBrand = profile.CardBrand,
+                last4 = profile.Last4,
+                expiryMonth = profile.ExpiryMonth,
+                expiryYear = profile.ExpiryYear,
+            });
+        }
+
+        [HttpPut("billing-profile")]
+        public async Task<IActionResult> SaveBillingProfile(
+            [FromBody] VendorBillingProfileRequest request,
+            CancellationToken cancellationToken)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            if (string.IsNullOrWhiteSpace(request.Last4) || request.Last4.Length != 4 || !request.Last4.All(char.IsDigit))
+                return BadRequest(new { message = "Only the last 4 digits are stored. Enter a valid last-4." });
+
+            var profile = await _db.VendorBillingProfiles.FirstOrDefaultAsync(p => p.VendorId == userId, cancellationToken);
+            if (profile is null)
+            {
+                profile = new VendorBillingProfile { VendorId = userId };
+                await _db.VendorBillingProfiles.AddAsync(profile, cancellationToken);
+            }
+
+            profile.CardholderName = request.CardholderName?.Trim();
+            profile.CardBrand = request.CardBrand?.Trim();
+            profile.Last4 = request.Last4;
+            profile.ExpiryMonth = request.ExpiryMonth;
+            profile.ExpiryYear = request.ExpiryYear;
+            profile.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync(cancellationToken);
+            return Ok(new { message = "Payment method saved (masked). Full card numbers are never stored." });
+        }
+
+        [HttpPost("subscription/checkout")]
+        public async Task<IActionResult> CreateSubscriptionCheckout(
+            [FromBody] VendorSelfSubscriptionRequest request,
+            CancellationToken cancellationToken)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            if (request.Tier == SubscriptionPlanTier.Free || request.MonthlyFee <= 0)
+                return BadRequest(new { message = "Checkout is only required for paid plans." });
+
+            var checkout = new VendorSubscriptionCheckout
+            {
+                Id = Guid.NewGuid(),
+                VendorId = userId,
+                Tier = request.Tier,
+                Amount = request.MonthlyFee,
+                Status = "Pending",
+                CreatedAt = DateTime.UtcNow,
+            };
+            await _db.VendorSubscriptionCheckouts.AddAsync(checkout, cancellationToken);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            var sandboxUrl = _configuration["PayHere:SandboxCheckoutUrl"] ?? "https://sandbox.payhere.lk/pay/checkout";
+            var merchantId = _configuration["PayHere:MerchantId"] ?? "TEST_MERCHANT";
+            var notifyUrl = _configuration["PayHere:NotifyUrl"] ?? $"{Request.Scheme}://{Request.Host}/api/payments/payhere/webhook";
+            var returnUrl = _configuration["PayHere:VendorSubscriptionReturnUrl"]
+                ?? $"{_configuration["Frontend:BaseUrl"]}/vendor/dashboard/settings?payment=success";
+            var cancelUrl = _configuration["PayHere:VendorSubscriptionCancelUrl"]
+                ?? $"{_configuration["Frontend:BaseUrl"]}/vendor/dashboard/settings?payment=cancelled";
+
+            return Ok(new
+            {
+                checkoutId = checkout.Id,
+                checkout = new
+                {
+                    checkoutUrl = sandboxUrl,
+                    merchant_id = merchantId,
+                    return_url = returnUrl,
+                    cancel_url = cancelUrl,
+                    notify_url = notifyUrl,
+                    order_id = checkout.Id,
+                    items = $"Vendor {request.Tier} Plan",
+                    amount = request.MonthlyFee,
+                    currency = "LKR",
+                    first_name = "Vendor",
+                    last_name = "Subscription",
+                    email = User.FindFirstValue(ClaimTypes.Email) ?? "vendor@mywedding.lk",
+                },
+            });
+        }
     }
 }
 
 public record VendorSelfSubscriptionRequest(SubscriptionPlanTier Tier, decimal MonthlyFee);
+
+public record VendorBillingProfileRequest(
+    string? CardholderName,
+    string? CardBrand,
+    string Last4,
+    byte? ExpiryMonth,
+    short? ExpiryYear);
