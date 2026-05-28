@@ -13,20 +13,20 @@ namespace MyWedding.Tasks.Application.Features.Tasks.Commands.CreateTask
     {
         private readonly IEventTaskRepository _taskRepository;
         private readonly IEventOrganizerRepository _organizerRepository;
-        private readonly IActivityFeedRepository _activityFeedRepository;
+        private readonly IAuditLogRepository _auditLogRepository;
         private readonly ICollaborationService _collaborationService;
         private readonly IUnitOfWork _unitOfWork;
 
         public CreateTaskCommandHandler(
             IEventTaskRepository taskRepository, 
             IEventOrganizerRepository organizerRepository,
-            IActivityFeedRepository activityFeedRepository,
+            IAuditLogRepository auditLogRepository,
             ICollaborationService collaborationService,
             IUnitOfWork unitOfWork)
         {
             _taskRepository = taskRepository;
             _organizerRepository = organizerRepository;
-            _activityFeedRepository = activityFeedRepository;
+            _auditLogRepository = auditLogRepository;
             _collaborationService = collaborationService;
             _unitOfWork = unitOfWork;
         }
@@ -62,16 +62,15 @@ namespace MyWedding.Tasks.Application.Features.Tasks.Commands.CreateTask
             // Log to Activity Feed
             if (!string.IsNullOrEmpty(request.UserId))
             {
-                var activity = new ActivityFeedItem
-                {
-                    Id = Guid.NewGuid(),
-                    EventId = request.EventId,
-                    UserId = request.UserId,
-                    ItemType = MyWedding.Domain.Enums.ActivityType.SystemLog,
-                    Content = $"New task created: \"{request.Title}\"",
-                    CreatedAt = DateTime.UtcNow
-                };
-                await _activityFeedRepository.AddAsync(activity, cancellationToken);
+                var auditItem = new AuditLogItem(
+                    Guid.NewGuid(),
+                    request.EventId,
+                    request.UserId,
+                    "TaskCreated",
+                    $"New task created: \"{request.Title}\"",
+                    null,
+                    DateTime.UtcNow);
+                await _auditLogRepository.AddAsync(auditItem, cancellationToken);
             }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);

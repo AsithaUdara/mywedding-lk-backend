@@ -8,7 +8,7 @@ namespace MyWedding.Collaboration.Infrastructure
     {
         public static IServiceCollection AddCollaborationModule(this IServiceCollection services)
         {
-            services.AddScoped<IActivityFeedRepository, ActivityFeedRepository>();
+            services.AddScoped<IAuditLogRepository, AuditLogRepository>();
             services.AddScoped<IConversationRepository, ConversationRepository>();
             services.AddScoped<IMessageRepository, MessageRepository>();
             return services;

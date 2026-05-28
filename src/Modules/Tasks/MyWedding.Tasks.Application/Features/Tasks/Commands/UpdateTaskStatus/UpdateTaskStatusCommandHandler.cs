@@ -14,20 +14,20 @@ namespace MyWedding.Tasks.Application.Features.Tasks.Commands.UpdateTaskStatus
     {
         private readonly IEventTaskRepository _taskRepository;
         private readonly IEventOrganizerRepository _organizerRepository;
-        private readonly IActivityFeedRepository _activityFeedRepository;
+        private readonly IAuditLogRepository _auditLogRepository;
         private readonly ICollaborationService _collaborationService;
         private readonly IUnitOfWork _unitOfWork;
 
         public UpdateTaskStatusCommandHandler(
             IEventTaskRepository taskRepository,
             IEventOrganizerRepository organizerRepository,
-            IActivityFeedRepository activityFeedRepository,
+            IAuditLogRepository auditLogRepository,
             ICollaborationService collaborationService,
             IUnitOfWork unitOfWork)
         {
             _taskRepository = taskRepository;
             _organizerRepository = organizerRepository;
-            _activityFeedRepository = activityFeedRepository;
+            _auditLogRepository = auditLogRepository;
             _collaborationService = collaborationService;
             _unitOfWork = unitOfWork;
         }
@@ -56,16 +56,15 @@ namespace MyWedding.Tasks.Application.Features.Tasks.Commands.UpdateTaskStatus
             // --- CREATE ACTIVITY LOG ---
             if (request.NewStatus == DomainTaskStatus.Completed)
             {
-                var activityItem = new ActivityFeedItem
-                {
-                    Id = Guid.NewGuid(),
-                    EventId = task.EventId,
-                    UserId = request.UserId,
-                    ItemType = MyWedding.Domain.Enums.ActivityType.SystemLog,
-                    Content = $"completed the task: \"{task.Title}\"",
-                    CreatedAt = DateTime.UtcNow
-                };
-                await _activityFeedRepository.AddAsync(activityItem, cancellationToken);
+                var auditItem = new AuditLogItem(
+                    Guid.NewGuid(),
+                    task.EventId,
+                    request.UserId,
+                    "TaskCompleted",
+                    $"completed the task: \"{task.Title}\"",
+                    null,
+                    DateTime.UtcNow);
+                await _auditLogRepository.AddAsync(auditItem, cancellationToken);
             }
             // --- END OF LOG ---
 

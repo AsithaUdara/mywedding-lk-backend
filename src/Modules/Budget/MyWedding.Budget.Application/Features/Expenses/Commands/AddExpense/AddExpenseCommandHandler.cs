@@ -14,7 +14,7 @@ namespace MyWedding.Budget.Application.Features.Expenses.Commands.AddExpense
         private readonly IBudgetCategoryRepository _categoryRepository; 
         private readonly IWeddingEventRepository _eventRepository;    
         private readonly IEventOrganizerRepository _organizerRepository;
-        private readonly IActivityFeedRepository _activityFeedRepository;
+        private readonly IAuditLogRepository _auditLogRepository;
         private readonly IUserRepository _userRepository;
         private readonly ICollaborationService _collaborationService;
         private readonly IUnitOfWork _unitOfWork;
@@ -24,7 +24,7 @@ namespace MyWedding.Budget.Application.Features.Expenses.Commands.AddExpense
             IBudgetCategoryRepository categoryRepository,
             IWeddingEventRepository eventRepository,
             IEventOrganizerRepository organizerRepository,
-            IActivityFeedRepository activityFeedRepository,
+            IAuditLogRepository auditLogRepository,
             IUserRepository userRepository,
             ICollaborationService collaborationService,
             IUnitOfWork unitOfWork)
@@ -33,7 +33,7 @@ namespace MyWedding.Budget.Application.Features.Expenses.Commands.AddExpense
             _categoryRepository = categoryRepository;
             _eventRepository = eventRepository;
             _organizerRepository = organizerRepository;
-            _activityFeedRepository = activityFeedRepository;
+            _auditLogRepository = auditLogRepository;
             _userRepository = userRepository;
             _collaborationService = collaborationService;
             _unitOfWork = unitOfWork;
@@ -63,17 +63,15 @@ namespace MyWedding.Budget.Application.Features.Expenses.Commands.AddExpense
 
             await _expenseRepository.AddAsync(newExpense, cancellationToken);
 
-            // Log activity: User added an expense
-            var activityItem = new ActivityFeedItem
-            {
-                Id = Guid.NewGuid(),
-                EventId = request.EventId,
-                UserId = request.UserId, // Assuming request contains UserId
-                ItemType = MyWedding.Domain.Enums.ActivityType.SystemLog,
-                Content = $"added a new expense: \"{request.Title}\" for {request.Amount:N2}",
-                CreatedAt = DateTime.UtcNow
-            };
-            await _activityFeedRepository.AddAsync(activityItem, cancellationToken);
+            var auditItem = new AuditLogItem(
+                Guid.NewGuid(),
+                request.EventId,
+                request.UserId,
+                "ExpenseAdded",
+                $"added a new expense: \"{request.Title}\" for {request.Amount:N2}",
+                null,
+                DateTime.UtcNow);
+            await _auditLogRepository.AddAsync(auditItem, cancellationToken);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -84,13 +82,13 @@ namespace MyWedding.Budget.Application.Features.Expenses.Commands.AddExpense
             await _collaborationService.NotifyBudgetUpdatedAsync(request.EventId);
             await _collaborationService.NotifyActivityAsync(request.EventId, new
             {
-                id = activityItem.Id,
-                userId = activityItem.UserId,
+                id = auditItem.Id,
+                userId = auditItem.ActorId,
                 userFirstName = user?.FirstName ?? "Team",
                 userLastName = user?.LastName ?? "Member",
-                itemType = activityItem.ItemType.ToString(),
-                content = activityItem.Content,
-                createdAt = activityItem.CreatedAt
+                itemType = auditItem.ActionType,
+                content = auditItem.Content,
+                createdAt = auditItem.TimestampUtc
             });
 
             return newExpense.Id;

@@ -13,7 +13,7 @@ namespace MyWedding.Events.Application.Features.Invitations.Commands.AcceptInvit
     {
         private readonly IEventInvitationRepository _invitationRepository;
         private readonly IEventOrganizerRepository _organizerRepository;
-        private readonly IActivityFeedRepository _activityFeedRepository;
+        private readonly IAuditLogRepository _auditLogRepository;
         private readonly IUserRepository _userRepository;
         private readonly ICollaborationService _collaborationService;
         private readonly IUnitOfWork _unitOfWork;
@@ -21,14 +21,14 @@ namespace MyWedding.Events.Application.Features.Invitations.Commands.AcceptInvit
         public AcceptInvitationCommandHandler(
             IEventInvitationRepository invitationRepository,
             IEventOrganizerRepository organizerRepository,
-            IActivityFeedRepository activityFeedRepository,
+            IAuditLogRepository auditLogRepository,
             IUserRepository userRepository,
             ICollaborationService collaborationService,
             IUnitOfWork unitOfWork)
         {
             _invitationRepository = invitationRepository;
             _organizerRepository = organizerRepository;
-            _activityFeedRepository = activityFeedRepository;
+            _auditLogRepository = auditLogRepository;
             _userRepository = userRepository;
             _collaborationService = collaborationService;
             _unitOfWork = unitOfWork;
@@ -95,16 +95,15 @@ namespace MyWedding.Events.Application.Features.Invitations.Commands.AcceptInvit
             await _organizerRepository.AddAsync(organizer, cancellationToken);
 
             // 6. Post to Activity Feed
-            var activity = new ActivityFeedItem
-            {
-                Id = Guid.NewGuid(),
-                EventId = invitation.EventId,
-                UserId = userId,
-                CreatedAt = DateTime.UtcNow,
-                ItemType = MyWedding.Domain.Enums.ActivityType.SystemLog,
-                Content = "joined the wedding planning team."
-            };
-            await _activityFeedRepository.AddAsync(activity, cancellationToken);
+            var auditItem = new AuditLogItem(
+                Guid.NewGuid(),
+                invitation.EventId,
+                userId,
+                "TeamMemberJoined",
+                "joined the wedding planning team.",
+                null,
+                DateTime.UtcNow);
+            await _auditLogRepository.AddAsync(auditItem, cancellationToken);
             
             try 
             {
@@ -129,13 +128,13 @@ namespace MyWedding.Events.Application.Features.Invitations.Commands.AcceptInvit
                 // Notify team that someone joined (triggers refresh for others)
                 await _collaborationService.NotifyActivityAsync(invitation.EventId, new
                 {
-                    id = activity.Id,
-                    userId = activity.UserId,
+                    id = auditItem.Id,
+                    userId = auditItem.ActorId,
                     userFirstName = user.FirstName,
                     userLastName = user.LastName,
-                    itemType = activity.ItemType.ToString(),
-                    content = activity.Content,
-                    createdAt = activity.CreatedAt
+                    itemType = auditItem.ActionType,
+                    content = auditItem.Content,
+                    createdAt = auditItem.TimestampUtc
                 });
 
                 // Specific signal for invitations status refresh

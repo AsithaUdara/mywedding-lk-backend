@@ -59,8 +59,7 @@ global using MyWedding.Vendors.Application.Features.Vendors.Queries.GetVendorByI
 global using MyWedding.Vendors.Application.Features.Vendors.Queries.GetVendors;
 global using MyWedding.Vendors.Application.Features.Vendors.Queries.GetVendorServices;
 global using MyWedding.API.Controllers.Requests;
-global using MyWedding.Collaboration.Application.Features.ActivityFeed.Queries.GetActivityFeedByEventId;
-global using MyWedding.Collaboration.Application.Features.ActivityFeed.Commands.PostComment;
+global using MyWedding.Collaboration.Application.Features.AuditLog.Queries.GetAuditLogByEventId;
 global using MyWedding.Collaboration.Application.Features.Conversations.Queries.GetConversationsByEventId;
 global using MyWedding.Collaboration.Application.Features.Messages.Queries.GetMessagesByConversationId;
 global using MyWedding.Collaboration.Application.Features.Messages.Commands.PostMessage;

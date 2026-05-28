@@ -13,20 +13,20 @@ namespace MyWedding.Events.Application.Features.Events.Commands.SetTotalBudget
     {
         private readonly IWeddingEventRepository _weddingEventRepository;
         private readonly IEventOrganizerRepository _organizerRepository;
-        private readonly IActivityFeedRepository _activityFeedRepository;
+        private readonly IAuditLogRepository _auditLogRepository;
         private readonly ICollaborationService _collaborationService;
         private readonly IUnitOfWork _unitOfWork;
 
         public SetTotalBudgetCommandHandler(
             IWeddingEventRepository weddingEventRepository, 
             IEventOrganizerRepository organizerRepository,
-            IActivityFeedRepository activityFeedRepository,
+            IAuditLogRepository auditLogRepository,
             ICollaborationService collaborationService,
             IUnitOfWork unitOfWork)
         {
             _weddingEventRepository = weddingEventRepository;
             _organizerRepository = organizerRepository;
-            _activityFeedRepository = activityFeedRepository;
+            _auditLogRepository = auditLogRepository;
             _collaborationService = collaborationService;
             _unitOfWork = unitOfWork;
         }
@@ -57,16 +57,15 @@ namespace MyWedding.Events.Application.Features.Events.Commands.SetTotalBudget
             // Log to Activity Feed
             if (!string.IsNullOrEmpty(request.UserId))
             {
-                var activity = new ActivityFeedItem
-                {
-                    Id = Guid.NewGuid(),
-                    EventId = request.EventId,
-                    UserId = request.UserId,
-                    ItemType = MyWedding.Domain.Enums.ActivityType.SystemLog,
-                    Content = $"Total budget updated to {request.TotalBudget:N0} LKR",
-                    CreatedAt = DateTime.UtcNow
-                };
-                await _activityFeedRepository.AddAsync(activity, cancellationToken);
+                var auditItem = new AuditLogItem(
+                    Guid.NewGuid(),
+                    request.EventId,
+                    request.UserId,
+                    "BudgetUpdated",
+                    $"Total budget updated to {request.TotalBudget:N0} LKR",
+                    null,
+                    DateTime.UtcNow);
+                await _auditLogRepository.AddAsync(auditItem, cancellationToken);
             }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);

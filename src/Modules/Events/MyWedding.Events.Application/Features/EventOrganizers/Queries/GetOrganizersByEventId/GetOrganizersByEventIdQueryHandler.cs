@@ -10,15 +10,25 @@ namespace MyWedding.Events.Application.Features.EventOrganizers.Queries.GetOrgan
 {
     public class GetOrganizersByEventIdQueryHandler : IRequestHandler<GetOrganizersByEventIdQuery, IEnumerable<OrganizerDto>>
     {
+        private readonly IWeddingEventRepository _eventRepository;
         private readonly IEventOrganizerRepository _organizerRepository;
 
-        public GetOrganizersByEventIdQueryHandler(IEventOrganizerRepository organizerRepository)
+        public GetOrganizersByEventIdQueryHandler(
+            IWeddingEventRepository eventRepository,
+            IEventOrganizerRepository organizerRepository)
         {
+            _eventRepository = eventRepository;
             _organizerRepository = organizerRepository;
         }
 
         public async Task<IEnumerable<OrganizerDto>> Handle(GetOrganizersByEventIdQuery request, CancellationToken cancellationToken)
         {
+            var weddingEvent = await _eventRepository.GetByIdAsync(request.EventId, cancellationToken);
+            if (weddingEvent is null)
+            {
+                throw new ForbiddenAccessException("You do not have access to this event.");
+            }
+
             var organizers = await _organizerRepository.GetOrganizersByEventIdAsync(request.EventId, cancellationToken);
 
             // Map the list of entities to a list of DTOs, including user details

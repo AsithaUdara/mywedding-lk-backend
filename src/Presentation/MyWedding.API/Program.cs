@@ -77,6 +77,8 @@ builder.Services.AddVendorsModule();
 builder.Services.AddCollaborationModule();
 
 builder.Services.AddScoped<ICollaborationService, CollaborationService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentPlannerAccessor, CurrentPlannerAccessor>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>());
 

@@ -13,18 +13,18 @@ namespace MyWedding.Events.Application.Features.EventOrganizers.Commands.InviteU
     {
         private readonly IEventOrganizerRepository _organizerRepository;
         private readonly IUserRepository _userRepository;
-        private readonly IActivityFeedRepository _activityFeedRepository;
+        private readonly IAuditLogRepository _auditLogRepository;
         private readonly IUnitOfWork _unitOfWork;
 
         public InviteUserToEventCommandHandler(
             IEventOrganizerRepository organizerRepository,
             IUserRepository userRepository,
-            IActivityFeedRepository activityFeedRepository,
+            IAuditLogRepository auditLogRepository,
             IUnitOfWork unitOfWork)
         {
             _organizerRepository = organizerRepository;
             _userRepository = userRepository;
-            _activityFeedRepository = activityFeedRepository;
+            _auditLogRepository = auditLogRepository;
             _unitOfWork = unitOfWork;
         }
 
@@ -70,16 +70,15 @@ namespace MyWedding.Events.Application.Features.EventOrganizers.Commands.InviteU
             await _organizerRepository.AddAsync(newOrganizer, cancellationToken);
 
             // 6. Log activity: User was invited to the team
-            var activityItem = new ActivityFeedItem
-            {
-                Id = Guid.NewGuid(),
-                EventId = request.EventId,
-                UserId = request.InviterUserId,
-                ItemType = Domain.Enums.ActivityType.SystemLog,
-                Content = $"invited {invitee.FirstName} to the planning team",
-                CreatedAt = DateTime.UtcNow
-            };
-            await _activityFeedRepository.AddAsync(activityItem, cancellationToken);
+            var auditItem = new AuditLogItem(
+                Guid.NewGuid(),
+                request.EventId,
+                request.InviterUserId,
+                "TeamMemberInvited",
+                $"invited {invitee.FirstName} to the planning team",
+                null,
+                DateTime.UtcNow);
+            await _auditLogRepository.AddAsync(auditItem, cancellationToken);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }

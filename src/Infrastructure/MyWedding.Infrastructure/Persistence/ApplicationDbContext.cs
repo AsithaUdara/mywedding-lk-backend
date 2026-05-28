@@ -6,8 +6,13 @@ namespace MyWedding.Infrastructure.Persistence
 {
     public class ApplicationDbContext : DbContext, IUnitOfWork
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+        private readonly ICurrentPlannerAccessor _currentPlannerAccessor;
+
+        public ApplicationDbContext(
+            DbContextOptions<ApplicationDbContext> options,
+            ICurrentPlannerAccessor currentPlannerAccessor) : base(options)
         {
+            _currentPlannerAccessor = currentPlannerAccessor;
         }
 
         public DbSet<User> Users { get; set; }
@@ -36,8 +41,7 @@ namespace MyWedding.Infrastructure.Persistence
         public DbSet<EventItinerary> EventItineraries { get; set; }
         public DbSet<EventItineraryItem> EventItineraryItems { get; set; }
         
-        // Activity Feed DbSet
-        public DbSet<ActivityFeedItem> ActivityFeedItems { get; set; }
+        public DbSet<AuditLogItem> AuditLogItems { get; set; }
         
         // Collaboration Hub DbSets
         public DbSet<Conversation> Conversations { get; set; }
@@ -74,12 +78,39 @@ namespace MyWedding.Infrastructure.Persistence
                 .HasForeignKey(e => e.CreatedById)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<WeddingEvent>()
+                .HasOne(e => e.ManagingPlanner)
+                .WithMany()
+                .HasForeignKey(e => e.ManagingPlannerId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<WeddingEvent>()
+                .Property(e => e.EventLifecycleStage)
+                .HasConversion<int>();
+
+            modelBuilder.Entity<WeddingEvent>()
+                .HasQueryFilter(e =>
+                    !_currentPlannerAccessor.IsPlanner ||
+                    (e.ManagingPlannerId != null && e.ManagingPlannerId == _currentPlannerAccessor.PlannerId));
+
             // EventTask -> WeddingEvent (cascade delete tasks when event is deleted)
             modelBuilder.Entity<EventTask>()
                 .HasOne(t => t.WeddingEvent)
                 .WithMany()
                 .HasForeignKey(t => t.EventId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EventTask>()
+                .HasOne(t => t.DependsOnTask)
+                .WithMany(t => t.DependentTasks)
+                .HasForeignKey(t => t.DependsOnTaskId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<EventTask>()
+                .HasOne(t => t.AssignedToUser)
+                .WithMany()
+                .HasForeignKey(t => t.AssignedToUserId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Expense -> WeddingEvent (cascade delete expenses when event is deleted)
             modelBuilder.Entity<Expense>()
@@ -323,18 +354,20 @@ namespace MyWedding.Infrastructure.Persistence
                 .Property(s => s.MonthlyFee)
                 .HasColumnType("decimal(18,2)");
 
-            // --- NEW CONFIGURATION FOR ACTIVITYFEEDITEM ---
-            modelBuilder.Entity<ActivityFeedItem>()
+            modelBuilder.Entity<AuditLogItem>()
                 .HasOne(i => i.WeddingEvent)
                 .WithMany()
                 .HasForeignKey(i => i.EventId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<ActivityFeedItem>()
-                .HasOne(i => i.User)
+            modelBuilder.Entity<AuditLogItem>()
+                .HasOne(i => i.Actor)
                 .WithMany()
-                .HasForeignKey(i => i.UserId)
+                .HasForeignKey(i => i.ActorId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<AuditLogItem>()
+                .ToTable("AuditLogItems");
 
             // --- NEW CONFIGURATION FOR COLLABORATION HUB ---
             

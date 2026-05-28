@@ -11,15 +11,25 @@ namespace MyWedding.Tasks.Application.Features.Tasks.Queries.GetTasksByEventId
 {
     public class GetTasksByEventIdQueryHandler : IRequestHandler<GetTasksByEventIdQuery, IEnumerable<TaskDto>>
     {
+        private readonly IWeddingEventRepository _eventRepository;
         private readonly IEventTaskRepository _taskRepository;
 
-        public GetTasksByEventIdQueryHandler(IEventTaskRepository taskRepository)
+        public GetTasksByEventIdQueryHandler(
+            IWeddingEventRepository eventRepository,
+            IEventTaskRepository taskRepository)
         {
+            _eventRepository = eventRepository;
             _taskRepository = taskRepository;
         }
 
         public async Task<IEnumerable<TaskDto>> Handle(GetTasksByEventIdQuery request, CancellationToken cancellationToken)
         {
+            var weddingEvent = await _eventRepository.GetByIdAsync(request.EventId, cancellationToken);
+            if (weddingEvent is null)
+            {
+                throw new ForbiddenAccessException("You do not have access to this event.");
+            }
+
             var tasks = await _taskRepository.GetByEventIdAsync(request.EventId, cancellationToken);
 
             return tasks.Select(task => new TaskDto(

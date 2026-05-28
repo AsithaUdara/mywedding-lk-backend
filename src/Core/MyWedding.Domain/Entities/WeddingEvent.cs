@@ -1,5 +1,6 @@
 // File: src/Core/MyWedding.Domain/Entities/WeddingEvent.cs
 using System;
+using MyWedding.Domain.Enums;
 
 namespace MyWedding.Domain.Entities
 {
@@ -9,6 +10,9 @@ namespace MyWedding.Domain.Entities
         public required string EventName { get; set; }
         public DateTime EventDate { get; set; }
         public decimal TotalBudget { get; set; }
+        public string? ManagingPlannerId { get; set; }
+        public WeddingPlanner? ManagingPlanner { get; set; }
+        public EventLifecycleStage EventLifecycleStage { get; set; } = EventLifecycleStage.Lead;
         
         // Foreign Key to the User who created the event
         public required string CreatedById { get; set; }
