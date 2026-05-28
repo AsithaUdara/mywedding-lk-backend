@@ -49,6 +49,7 @@ global using MyWedding.Identity.Application.Features.Users.Commands.SyncUser;
 global using MyWedding.Vendors.Application.Features.Bookings;
 global using MyWedding.Vendors.Application.Features.Bookings.Commands;
 global using MyWedding.Vendors.Application.Features.Bookings.Commands.CreateBooking;
+global using MyWedding.Vendors.Application.Features.Bookings.Commands.ApproveBooking;
 global using MyWedding.Vendors.Application.Features.Vendors;
 global using MyWedding.Vendors.Application.Features.Vendors.Commands;
 global using MyWedding.Vendors.Application.Features.Vendors.Commands.AddService;

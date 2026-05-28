@@ -7,6 +7,7 @@ namespace MyWedding.Domain.Enums
         AwaitingPayment = 1,
         Confirmed = 2,      // The booking is confirmed after payment or agreement
         Completed = 3,      // The event date has passed and the service was rendered
-        Cancelled = 4       // The booking was cancelled by either party
+        Cancelled = 4,      // The booking was cancelled by either party
+        ContractSigned = 5  // Client completed E-Sign on vendor contract
     }
 }

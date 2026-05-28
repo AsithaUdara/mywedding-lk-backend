@@ -30,6 +30,9 @@ namespace MyWedding.Infrastructure.Persistence
         public DbSet<VendorBooking> VendorBookings { get; set; }
         public DbSet<BookingContract> BookingContracts { get; set; }
         public DbSet<VendorInquiry> VendorInquiries { get; set; }
+        public DbSet<VendorInquiryQuote> VendorInquiryQuotes { get; set; }
+        public DbSet<VendorBlockedDate> VendorBlockedDates { get; set; }
+        public DbSet<VendorProfileView> VendorProfileViews { get; set; }
         public DbSet<WeddingPlanner> WeddingPlanners { get; set; }
         public DbSet<PlannerClientEvent> PlannerClientEvents { get; set; }
         public DbSet<BookingPaymentTransaction> BookingPaymentTransactions { get; set; }
@@ -180,6 +183,37 @@ namespace MyWedding.Infrastructure.Persistence
                 .WithMany(v => v.Inquiries)
                 .HasForeignKey(vi => vi.VendorId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<VendorInquiry>()
+                .HasOne(vi => vi.WeddingEvent)
+                .WithMany()
+                .HasForeignKey(vi => vi.EventId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<VendorInquiryQuote>()
+                .HasOne(q => q.Inquiry)
+                .WithMany()
+                .HasForeignKey(q => q.InquiryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VendorBlockedDate>()
+                .HasOne(b => b.Vendor)
+                .WithMany()
+                .HasForeignKey(b => b.VendorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VendorBlockedDate>()
+                .HasIndex(b => new { b.VendorId, b.Date })
+                .IsUnique();
+
+            modelBuilder.Entity<VendorProfileView>()
+                .HasOne(v => v.Vendor)
+                .WithMany()
+                .HasForeignKey(v => v.VendorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VendorProfileView>()
+                .HasIndex(v => new { v.VendorId, v.ViewedAt });
 
             // VendorReview -> WeddingEvent (Many-to-One, cascade delete reviews when event is deleted)
             modelBuilder.Entity<VendorReview>()

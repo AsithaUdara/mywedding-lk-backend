@@ -88,6 +88,19 @@ namespace MyWedding.API.Controllers
             await _mediator.Send(command);
             return Ok();
         }
+
+        [HttpPost("{id}/approve")]
+        public async Task<IActionResult> ApproveBooking(Guid id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            await _mediator.Send(new ApproveBookingCommand { BookingId = id, UserId = userId });
+            return Ok(new { message = "Booking approved." });
+        }
     }
 
     public record UpdateBookingStatusRequest(MyWedding.Domain.Enums.BookingStatus Status);

@@ -14,14 +14,27 @@ namespace MyWedding.Vendors.Application.Features.Vendors.Queries.GetVendorById
     public class GetVendorByIdQueryHandler : IRequestHandler<GetVendorByIdQuery, VendorDetailDto>
     {
         private readonly IVendorRepository _vendorRepository;
+        private readonly IVendorProfileViewRepository _profileViewRepository;
 
-        public GetVendorByIdQueryHandler(IVendorRepository vendorRepository)
+        public GetVendorByIdQueryHandler(
+            IVendorRepository vendorRepository,
+            IVendorProfileViewRepository profileViewRepository)
         {
             _vendorRepository = vendorRepository;
+            _profileViewRepository = profileViewRepository;
         }
 
         public async Task<VendorDetailDto> Handle(GetVendorByIdQuery request, CancellationToken cancellationToken)
         {
+            try
+            {
+                await _profileViewRepository.RecordViewAsync(request.VendorId, cancellationToken);
+            }
+            catch
+            {
+                // Analytics must not block public vendor profile loads.
+            }
+
             var vendor = await _vendorRepository.GetByIdAsync(request.VendorId, cancellationToken);
 
             if (vendor is null)

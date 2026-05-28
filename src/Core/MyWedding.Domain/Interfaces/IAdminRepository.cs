@@ -1,3 +1,4 @@
+using MyWedding.Domain.ReadModels;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,5 +13,6 @@ namespace MyWedding.Domain.Interfaces
         Task<int> GetTotalVendorsAsync(CancellationToken cancellationToken = default);
         Task<int> GetTotalEventsAsync(CancellationToken cancellationToken = default);
         Task<int> GetTotalBookingsAsync(CancellationToken cancellationToken = default);
+        Task<PlatformAnalyticsSnapshot> GetPlatformAnalyticsAsync(CancellationToken cancellationToken = default);
     }
 }

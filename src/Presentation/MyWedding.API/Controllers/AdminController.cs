@@ -6,6 +6,7 @@ using MyWedding.Domain.Enums;
 using MyWedding.Infrastructure.Persistence;
 using MyWedding.Vendors.Application.Features.Admin.Commands.VerifyVendor;
 using MyWedding.Vendors.Application.Features.Admin.Queries.GetPendingVendors;
+using MyWedding.Vendors.Application.Features.Admin.Queries.GetPlatformAnalytics;
 using MyWedding.Vendors.Application.Features.Admin.Queries.GetPlatformStats;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -79,6 +80,15 @@ namespace MyWedding.API.Controllers
             if (!IsAdmin()) return Forbid();
 
             var result = await _mediator.Send(new GetPlatformStatsQuery());
+            return Ok(result);
+        }
+
+        [HttpGet("platform-analytics")]
+        public async Task<IActionResult> GetPlatformAnalytics()
+        {
+            if (!IsAdmin()) return Forbid();
+
+            var result = await _mediator.Send(new GetPlatformAnalyticsQuery());
             return Ok(result);
         }
 

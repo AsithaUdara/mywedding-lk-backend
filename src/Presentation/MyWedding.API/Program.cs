@@ -79,6 +79,7 @@ builder.Services.AddVendorsModule();
 builder.Services.AddCollaborationModule();
 
 builder.Services.AddScoped<ICollaborationService, CollaborationService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentPlannerAccessor, CurrentPlannerAccessor>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
@@ -143,6 +144,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<CollaborationHub>("/hubs/collaboration");
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 // Seed the database
 using (var scope = app.Services.CreateScope())
