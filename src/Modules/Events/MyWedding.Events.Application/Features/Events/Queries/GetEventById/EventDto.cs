@@ -9,5 +9,5 @@ namespace MyWedding.Events.Application.Features.Events.Queries.GetEventById
         DateTime EventDate, 
         string CreatedById,
         decimal TotalBudget,
-        string? StylePreferences);
+        bool CanBook = false);
 }

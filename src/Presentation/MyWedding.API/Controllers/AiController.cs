@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using MyWedding.Domain.Entities;
 using MyWedding.Infrastructure.Persistence;
 using System.Security.Claims;
-using System.Text.Json;
 
 namespace MyWedding.API.Controllers;
 
@@ -225,7 +224,6 @@ public class AiController : ControllerBase
         var expenseTotal = await _db.Expenses.Where(e => e.EventId == eventId).SumAsync(e => (decimal?)e.Amount, cancellationToken) ?? 0;
         var remainingBudget = weddingEvent.TotalBudget - expenseTotal;
 
-        var styles = ParseStyleKeywords(weddingEvent.StylePreferences);
         var vendors = await _db.Vendors
             .AsNoTracking()
             .Include(v => v.Services)
@@ -237,9 +235,7 @@ public class AiController : ControllerBase
             {
                 var avgPrice = v.Services.Any() ? v.Services.Average(s => s.BasePrice) : 0;
                 var priceFitness = avgPrice <= remainingBudget ? 1m : 0.4m;
-                var styleFitness = styles.Any()
-                    ? (styles.Any(s => (v.BusinessDescription ?? string.Empty).Contains(s, StringComparison.OrdinalIgnoreCase)) ? 1m : 0.6m)
-                    : 0.8m;
+                var styleFitness = 0.8m;
                 var ratingFitness = v.AverageRating <= 0 ? 0.5m : Math.Min(v.AverageRating / 5m, 1m);
                 var score = Math.Round((priceFitness * 0.4m) + (styleFitness * 0.3m) + (ratingFitness * 0.3m), 3);
 
@@ -255,22 +251,6 @@ public class AiController : ControllerBase
             .ToList();
     }
 
-    private static IReadOnlyCollection<string> ParseStyleKeywords(string? stylePreferences)
-    {
-        if (string.IsNullOrWhiteSpace(stylePreferences))
-            return Array.Empty<string>();
-
-        try
-        {
-            var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(stylePreferences);
-            if (dict is null) return Array.Empty<string>();
-            return dict.Values.Where(v => !string.IsNullOrWhiteSpace(v)).ToArray();
-        }
-        catch
-        {
-            return Array.Empty<string>();
-        }
-    }
 }
 
 public record AiChatRequest(Guid EventId, string Message);

@@ -11,7 +11,6 @@ namespace MyWedding.Collaboration.Infrastructure
             services.AddScoped<IActivityFeedRepository, ActivityFeedRepository>();
             services.AddScoped<IConversationRepository, ConversationRepository>();
             services.AddScoped<IMessageRepository, MessageRepository>();
-            services.AddScoped<IPollRepository, PollRepository>();
             return services;
         }
     }

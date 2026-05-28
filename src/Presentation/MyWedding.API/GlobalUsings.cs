@@ -21,10 +21,6 @@ global using MyWedding.Budget.Application.Features.BudgetCategories.Queries.GetB
 global using MyWedding.Budget.Application.Features.Expenses;
 global using MyWedding.Budget.Application.Features.Expenses.Commands;
 global using MyWedding.Budget.Application.Features.Expenses.Commands.AddExpense;
-global using MyWedding.Collaboration.Application.Features.Polls;
-global using MyWedding.Collaboration.Application.Features.Polls.Commands;
-global using MyWedding.Collaboration.Application.Features.Polls.Commands.CreatePoll;
-global using MyWedding.Collaboration.Application.Features.Polls.Commands.Vote;
 global using MyWedding.Events.Application.Features.EventOrganizers;
 global using MyWedding.Events.Application.Features.EventOrganizers.Commands;
 global using MyWedding.Events.Application.Features.EventOrganizers.Commands.InviteUserToEvent;
@@ -34,7 +30,6 @@ global using MyWedding.Events.Application.Features.EventOrganizers.Queries.GetOr
 global using MyWedding.Events.Application.Features.Events;
 global using MyWedding.Events.Application.Features.Events.Commands;
 global using MyWedding.Events.Application.Features.Events.Commands.CreateEvent;
-global using MyWedding.Events.Application.Features.Events.Commands.SetEventPreferences;
 global using MyWedding.Events.Application.Features.Events.Commands.SetTotalBudget;
 global using MyWedding.Events.Application.Features.Events.Queries;
 global using MyWedding.Events.Application.Features.Events.Queries.GetBudgetOverview;

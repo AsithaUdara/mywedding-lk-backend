@@ -110,31 +110,6 @@ public class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Sets or updates the wedding style preferences (e.g., Theme, Vibe) for an event.
-    /// </summary>
-    /// <param name="eventId">The unique identifier of the wedding event.</param>
-    /// <param name="preferences">A dictionary of key-value pairs representing style preferences.</param>
-    /// <returns>NoContent if successful.</returns>
-    [HttpPut("{eventId:guid}/preferences")]
-    public async Task<IActionResult> SetStylePreferences(Guid eventId, [FromBody] Dictionary<string, string> preferences)
-    {
-        var userId = GetUserId();
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
-
-        var command = new SetEventPreferencesCommand
-        {
-            EventId = eventId,
-            UserId = userId,
-            Preferences = preferences
-        };
-
-        await _mediator.Send(command);
-
-        return NoContent();
-    }
-
-    /// <summary>
     /// Retrieves the list of invitations sent for a specific wedding event, including their current status.
     /// </summary>
     /// <param name="eventId">The unique identifier of the wedding event.</param>
