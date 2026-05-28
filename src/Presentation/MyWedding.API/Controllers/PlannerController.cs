@@ -6,6 +6,7 @@ using MyWedding.Domain.Entities;
 using MyWedding.Domain.Enums;
 using MyWedding.Domain.Interfaces;
 using MyWedding.Events.Application.Features.Events.Commands.UpdateEventLifecycleStage;
+using MyWedding.Tasks.Application.Features.Tasks.Commands.GenerateTaskTemplate;
 using MyWedding.Infrastructure.Persistence;
 using System.Security.Claims;
 
@@ -405,7 +406,18 @@ public class PlannerController : ControllerBase
         await _db.PlannerClientEvents.AddAsync(plannerClientEvent, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
 
-        return Ok(new { eventId = weddingEvent.Id, plannerClientEventId = plannerClientEvent.Id });
+        var tasksGenerated = await _mediator.Send(new GenerateTaskTemplateCommand
+        {
+            EventId = weddingEvent.Id,
+            UserId = plannerId
+        }, cancellationToken);
+
+        return Ok(new
+        {
+            eventId = weddingEvent.Id,
+            plannerClientEventId = plannerClientEvent.Id,
+            tasksGenerated
+        });
     }
 
     [HttpPost("events/{eventId:guid}/assign-client")]

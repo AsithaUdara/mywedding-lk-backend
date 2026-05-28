@@ -17,6 +17,7 @@ namespace MyWedding.Vendors.Infrastructure
             services.AddScoped<IVendorProfileViewRepository, VendorProfileViewRepository>();
             services.AddScoped<IVendorAnalyticsRepository, VendorAnalyticsRepository>();
             services.AddScoped<IBookingContractRepository, BookingContractRepository>();
+            services.AddScoped<IVendorShortlistRepository, VendorShortlistRepository>();
             return services;
         }
     }

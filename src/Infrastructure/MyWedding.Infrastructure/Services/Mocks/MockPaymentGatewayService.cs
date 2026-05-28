@@ -5,7 +5,6 @@ namespace MyWedding.Infrastructure.Services.Mocks;
 /// <summary>
 /// Simulates PayHere split settlement until live gateway integration is configured.
 /// </summary>
-// TODO: Human to implement — integrate PayHere checkout using PayHere:MerchantId and PayHere:MerchantSecret.
 public class MockPaymentGatewayService : IPaymentGatewayService
 {
     public async Task<SplitPaymentResult> ProcessSplitPaymentAsync(
@@ -47,4 +46,13 @@ public class MockPaymentGatewayService : IPaymentGatewayService
                 $"Simulated split payment: vendor receives LKR {vendorNet:N2}, platform take rate LKR {commission:N2} ({takeRate:P0}).",
             IsSimulated: true);
     }
+
+    public Task<PayHereWebhookProcessResult> ProcessPayHereWebhookAsync(
+        PayHereWebhookNotification notification,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(new PayHereWebhookProcessResult(
+            true,
+            false,
+            false,
+            "Mock gateway does not process webhooks."));
 }

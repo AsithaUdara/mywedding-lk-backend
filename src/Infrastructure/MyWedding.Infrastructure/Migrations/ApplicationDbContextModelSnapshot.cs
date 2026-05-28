@@ -670,6 +670,33 @@ namespace MyWedding.Infrastructure.Migrations
                     b.ToTable("VendorBillingProfiles");
                 });
 
+            modelBuilder.Entity("MyWedding.Domain.Entities.VendorBlockedDate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("VendorId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VendorId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("VendorBlockedDates");
+                });
+
             modelBuilder.Entity("MyWedding.Domain.Entities.VendorBooking", b =>
                 {
                     b.Property<Guid>("Id")
@@ -738,6 +765,9 @@ namespace MyWedding.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("EventId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
 
@@ -756,15 +786,81 @@ namespace MyWedding.Infrastructure.Migrations
                     b.Property<DateTime>("SentAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Subject")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("VendorId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("EventId");
+
                     b.HasIndex("VendorId");
 
                     b.ToTable("VendorInquiries");
+                });
+
+            modelBuilder.Entity("MyWedding.Domain.Entities.VendorInquiryQuote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("InquiryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PdfStorageKey")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("QuoteReference")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("VendorId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InquiryId");
+
+                    b.ToTable("VendorInquiryQuotes");
+                });
+
+            modelBuilder.Entity("MyWedding.Domain.Entities.VendorProfileView", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("VendorId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("ViewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VendorId", "ViewedAt");
+
+                    b.ToTable("VendorProfileViews");
                 });
 
             modelBuilder.Entity("MyWedding.Domain.Entities.VendorReview", b =>
@@ -852,6 +948,67 @@ namespace MyWedding.Infrastructure.Migrations
                     b.HasIndex("VendorId");
 
                     b.ToTable("VendorServices");
+                });
+
+            modelBuilder.Entity("MyWedding.Domain.Entities.VendorShortlistItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CategoryLabel")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ClientApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ClientApprovedByUserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PlannerId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PlannerNotes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("ProposedAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("SentToClientAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ServiceDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("VendorBookingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("VendorServiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VendorBookingId");
+
+                    b.HasIndex("VendorServiceId");
+
+                    b.HasIndex("EventId", "VendorServiceId")
+                        .IsUnique();
+
+                    b.ToTable("VendorShortlistItems");
                 });
 
             modelBuilder.Entity("MyWedding.Domain.Entities.VendorSubscription", b =>
@@ -1286,6 +1443,17 @@ namespace MyWedding.Infrastructure.Migrations
                     b.Navigation("Vendor");
                 });
 
+            modelBuilder.Entity("MyWedding.Domain.Entities.VendorBlockedDate", b =>
+                {
+                    b.HasOne("MyWedding.Domain.Entities.Vendor", "Vendor")
+                        .WithMany()
+                        .HasForeignKey("VendorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Vendor");
+                });
+
             modelBuilder.Entity("MyWedding.Domain.Entities.VendorBooking", b =>
                 {
                     b.HasOne("MyWedding.Domain.Entities.User", "BookedBy")
@@ -1319,10 +1487,39 @@ namespace MyWedding.Infrastructure.Migrations
 
             modelBuilder.Entity("MyWedding.Domain.Entities.VendorInquiry", b =>
                 {
+                    b.HasOne("MyWedding.Domain.Entities.WeddingEvent", "WeddingEvent")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("MyWedding.Domain.Entities.Vendor", "Vendor")
                         .WithMany("Inquiries")
                         .HasForeignKey("VendorId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Vendor");
+
+                    b.Navigation("WeddingEvent");
+                });
+
+            modelBuilder.Entity("MyWedding.Domain.Entities.VendorInquiryQuote", b =>
+                {
+                    b.HasOne("MyWedding.Domain.Entities.VendorInquiry", "Inquiry")
+                        .WithMany()
+                        .HasForeignKey("InquiryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Inquiry");
+                });
+
+            modelBuilder.Entity("MyWedding.Domain.Entities.VendorProfileView", b =>
+                {
+                    b.HasOne("MyWedding.Domain.Entities.Vendor", "Vendor")
+                        .WithMany()
+                        .HasForeignKey("VendorId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Vendor");
@@ -1372,6 +1569,32 @@ namespace MyWedding.Infrastructure.Migrations
                     b.Navigation("Category");
 
                     b.Navigation("Vendor");
+                });
+
+            modelBuilder.Entity("MyWedding.Domain.Entities.VendorShortlistItem", b =>
+                {
+                    b.HasOne("MyWedding.Domain.Entities.WeddingEvent", "WeddingEvent")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MyWedding.Domain.Entities.VendorBooking", "VendorBooking")
+                        .WithMany()
+                        .HasForeignKey("VendorBookingId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("MyWedding.Domain.Entities.VendorService", "VendorService")
+                        .WithMany()
+                        .HasForeignKey("VendorServiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("VendorBooking");
+
+                    b.Navigation("VendorService");
+
+                    b.Navigation("WeddingEvent");
                 });
 
             modelBuilder.Entity("MyWedding.Domain.Entities.VendorSubscription", b =>

@@ -28,6 +28,7 @@ namespace MyWedding.Infrastructure.Persistence
         public DbSet<VendorService> VendorServices { get; set; }
         public DbSet<VendorReview> VendorReviews { get; set; }
         public DbSet<VendorBooking> VendorBookings { get; set; }
+        public DbSet<VendorShortlistItem> VendorShortlistItems { get; set; }
         public DbSet<BookingContract> BookingContracts { get; set; }
         public DbSet<VendorInquiry> VendorInquiries { get; set; }
         public DbSet<VendorInquiryQuote> VendorInquiryQuotes { get; set; }
@@ -283,6 +284,32 @@ namespace MyWedding.Infrastructure.Persistence
                 .WithOne(c => c.VendorBooking)
                 .HasForeignKey<BookingContract>(c => c.Id)
                 .IsRequired(false);
+
+            modelBuilder.Entity<VendorShortlistItem>()
+                .HasOne(i => i.WeddingEvent)
+                .WithMany()
+                .HasForeignKey(i => i.EventId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<VendorShortlistItem>()
+                .HasOne(i => i.VendorService)
+                .WithMany()
+                .HasForeignKey(i => i.VendorServiceId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<VendorShortlistItem>()
+                .HasOne(i => i.VendorBooking)
+                .WithMany()
+                .HasForeignKey(i => i.VendorBookingId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<VendorShortlistItem>()
+                .Property(i => i.Status)
+                .HasConversion<int>();
+
+            modelBuilder.Entity<VendorShortlistItem>()
+                .HasIndex(i => new { i.EventId, i.VendorServiceId })
+                .IsUnique();
 
             modelBuilder.Entity<BookingPaymentTransaction>()
                 .HasOne(t => t.Booking)

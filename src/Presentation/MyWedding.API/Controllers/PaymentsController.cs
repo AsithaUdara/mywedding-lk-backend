@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Enums;
-using MyWedding.API.PayHere;
 using MyWedding.Infrastructure.Persistence;
+using MyWedding.SharedKernel.Interfaces;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -14,13 +14,17 @@ namespace MyWedding.API.Controllers;
 [Route("api/[controller]")]
 public class PaymentsController : ControllerBase
 {
-    private static readonly Guid OtherBudgetCategoryId = Guid.Parse("CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC");
     private readonly ApplicationDbContext _db;
+    private readonly IPaymentGatewayService _paymentGateway;
     private readonly IConfiguration _configuration;
 
-    public PaymentsController(ApplicationDbContext db, IConfiguration configuration)
+    public PaymentsController(
+        ApplicationDbContext db,
+        IPaymentGatewayService paymentGateway,
+        IConfiguration configuration)
     {
         _db = db;
+        _paymentGateway = paymentGateway;
         _configuration = configuration;
     }
 
@@ -33,7 +37,7 @@ public class PaymentsController : ControllerBase
             return Unauthorized();
 
         var booking = await _db.VendorBookings
-            .Include(b => b.WeddingEvent)
+            .Include(b => b.VendorService)
             .FirstOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
         if (booking is null)
             return NotFound(new { message = "Booking not found." });
@@ -43,74 +47,38 @@ public class PaymentsController : ControllerBase
         if (!hasEventAccess)
             return Forbid();
 
-        var existingPaid = await _db.BookingPaymentTransactions
-            .FirstOrDefaultAsync(t => t.BookingId == bookingId && t.Status == PaymentTransactionStatus.Paid, cancellationToken);
-        if (existingPaid is not null)
-            return Ok(new { message = "Booking already paid.", alreadyPaid = true });
-
-        var transaction = await _db.BookingPaymentTransactions
-            .OrderByDescending(t => t.CreatedAt)
-            .FirstOrDefaultAsync(t => t.BookingId == bookingId, cancellationToken);
-
-        if (transaction is null || transaction.Status == PaymentTransactionStatus.Failed)
-        {
-            transaction = new BookingPaymentTransaction
-            {
-                Id = Guid.NewGuid(),
-                BookingId = bookingId,
-                GatewayName = "PayHere",
-                IdempotencyKey = Guid.NewGuid().ToString("N"),
-                Amount = booking.FinalAmount,
-                Currency = "LKR",
-                Status = PaymentTransactionStatus.Initiated,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            await _db.BookingPaymentTransactions.AddAsync(transaction, cancellationToken);
-        }
-
-        booking.Status = BookingStatus.AwaitingPayment;
-        transaction.Status = PaymentTransactionStatus.Pending;
-        transaction.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(cancellationToken);
-
-        var sandboxUrl = _configuration["PayHere:SandboxCheckoutUrl"] ?? "https://sandbox.payhere.lk/pay/checkout";
-        var merchantId = _configuration["PayHere:MerchantId"] ?? "TEST_MERCHANT";
-        var merchantSecret = _configuration["PayHere:MerchantSecret"] ?? "";
-        var notifyUrl = _configuration["PayHere:NotifyUrl"] ?? $"{Request.Scheme}://{Request.Host}/api/payments/payhere/webhook";
-        var returnUrl = _configuration["PayHere:ReturnUrl"] ?? $"{_configuration["Frontend:BaseUrl"]}/dashboard";
+        var notifyUrl = _configuration["PayHere:NotifyUrl"]
+            ?? $"{Request.Scheme}://{Request.Host}/api/payments/payhere/webhook";
+        var returnUrl = _configuration["PayHere:ReturnUrl"]
+            ?? $"{_configuration["Frontend:BaseUrl"]}/dashboard";
         var cancelUrl = _configuration["PayHere:CancelUrl"] ?? returnUrl;
-        var orderId = bookingId.ToString();
-        var amount = booking.FinalAmount;
-        var currency = "LKR";
 
-        var checkout = new Dictionary<string, object>
-        {
-            ["checkoutUrl"] = sandboxUrl,
-            ["merchant_id"] = merchantId,
-            ["return_url"] = returnUrl,
-            ["cancel_url"] = cancelUrl,
-            ["notify_url"] = notifyUrl,
-            ["order_id"] = orderId,
-            ["items"] = "Vendor Deposit",
-            ["amount"] = amount,
-            ["currency"] = currency,
-            ["first_name"] = "Wedding",
-            ["last_name"] = "Client",
-            ["email"] = User.FindFirstValue(ClaimTypes.Email) ?? "client@mywedding.lk",
-        };
+        var result = await _paymentGateway.ProcessSplitPaymentAsync(
+            new SplitPaymentRequest(
+                bookingId,
+                booking.VendorService?.VendorId ?? string.Empty,
+                booking.FinalAmount,
+                PayerEmail: User.FindFirstValue(ClaimTypes.Email) ?? "client@mywedding.lk",
+                NotifyUrl: notifyUrl,
+                ReturnUrl: returnUrl,
+                CancelUrl: cancelUrl),
+            cancellationToken);
 
-        if (!string.IsNullOrWhiteSpace(merchantSecret))
-        {
-            checkout["hash"] = PayHereHashHelper.BuildCheckoutHash(
-                merchantId, orderId, amount, currency, merchantSecret);
-        }
+        if (!result.Success)
+            return BadRequest(new { message = result.Message });
+
+        if (result.Status == "already_paid")
+            return Ok(new { message = result.Message, alreadyPaid = true, bookingId });
 
         return Ok(new
         {
             bookingId,
-            transactionId = transaction.Id,
-            checkout
+            transactionId = result.PaymentTransactionId,
+            grossAmountLkr = result.GrossAmountLkr,
+            platformCommissionLkr = result.PlatformCommissionLkr,
+            vendorNetPayoutLkr = result.VendorNetPayoutLkr,
+            isSimulated = result.IsSimulated,
+            checkout = result.CheckoutForm
         });
     }
 
@@ -118,11 +86,6 @@ public class PaymentsController : ControllerBase
     [HttpPost("payhere/webhook")]
     public async Task<IActionResult> HandlePayHereWebhook([FromForm] PayHereWebhookRequest request, CancellationToken cancellationToken)
     {
-        if (!IsWebhookSignatureValid(request))
-        {
-            return Unauthorized(new { message = "Invalid webhook signature." });
-        }
-
         if (!Guid.TryParse(request.order_id, out var orderId))
             return BadRequest(new { message = "Invalid order_id." });
 
@@ -130,78 +93,33 @@ public class PaymentsController : ControllerBase
             .FirstOrDefaultAsync(c => c.Id == orderId, cancellationToken);
         if (subscriptionCheckout is not null)
         {
+            if (!IsWebhookSignatureValid(request))
+                return Unauthorized(new { message = "Invalid webhook signature." });
+
             return await HandleVendorSubscriptionWebhook(subscriptionCheckout, request, cancellationToken);
         }
 
-        var bookingId = orderId;
-        var booking = await _db.VendorBookings
-            .Include(b => b.VendorService)
-            .FirstOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
-        if (booking is null)
-            return NotFound();
+        var webhookResult = await _paymentGateway.ProcessPayHereWebhookAsync(
+            new PayHereWebhookNotification(
+                request.merchant_id,
+                request.order_id,
+                request.payment_id,
+                request.payhere_amount,
+                request.payhere_currency,
+                request.status_code,
+                request.md5sig,
+                request.method),
+            cancellationToken);
 
-        var tx = await _db.BookingPaymentTransactions
-            .OrderByDescending(t => t.CreatedAt)
-            .FirstOrDefaultAsync(t => t.BookingId == bookingId, cancellationToken);
-        if (tx is null)
-            return NotFound();
+        if (!webhookResult.Success && webhookResult.Message.Contains("signature", StringComparison.OrdinalIgnoreCase))
+            return Unauthorized(new { message = webhookResult.Message });
 
-        if (tx.Status == PaymentTransactionStatus.Paid)
-            return Ok(new { message = "Already processed." });
+        if (!webhookResult.Success)
+            return webhookResult.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+                ? NotFound(new { message = webhookResult.Message })
+                : BadRequest(new { message = webhookResult.Message });
 
-        tx.GatewayPaymentId = request.payment_id;
-        tx.RawCallbackPayload = JsonSerializer.Serialize(request);
-        tx.UpdatedAt = DateTime.UtcNow;
-
-        if (request.status_code == "2")
-        {
-            tx.Status = PaymentTransactionStatus.Paid;
-            tx.PaidAt = DateTime.UtcNow;
-            booking.Status = BookingStatus.Confirmed;
-
-            var hasExpense = await _db.Expenses.AnyAsync(
-                e => e.EventId == booking.EventId && e.Title == $"Vendor Deposit - {booking.Id}",
-                cancellationToken);
-            if (!hasExpense)
-            {
-                await _db.Expenses.AddAsync(new Expense
-                {
-                    Id = Guid.NewGuid(),
-                    EventId = booking.EventId,
-                    Title = $"Vendor Deposit - {booking.Id}",
-                    Amount = booking.FinalAmount,
-                    ExpenseDate = DateTime.UtcNow,
-                    BudgetCategoryId = OtherBudgetCategoryId,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                }, cancellationToken);
-            }
-
-            var hasSettlement = await _db.CommissionSettlements.AnyAsync(c => c.BookingId == booking.Id, cancellationToken);
-            if (!hasSettlement)
-            {
-                var commission = Math.Round(booking.FinalAmount * 0.05m, 2, MidpointRounding.AwayFromZero);
-                await _db.CommissionSettlements.AddAsync(new CommissionSettlement
-                {
-                    Id = Guid.NewGuid(),
-                    BookingId = booking.Id,
-                    GrossAmount = booking.FinalAmount,
-                    CommissionAmount = commission,
-                    VendorNetAmount = booking.FinalAmount - commission,
-                    CommissionRate = 0.05m,
-                    IsVendorPayoutSettled = false,
-                    CreatedAt = DateTime.UtcNow
-                }, cancellationToken);
-            }
-        }
-        else
-        {
-            tx.Status = PaymentTransactionStatus.Failed;
-            booking.Status = BookingStatus.Requested;
-        }
-
-        await _db.SaveChangesAsync(cancellationToken);
-        return Ok(new { message = "Webhook processed." });
+        return Ok(new { message = webhookResult.Message });
     }
 
     [Authorize]
@@ -301,21 +219,18 @@ public class PaymentsController : ControllerBase
 
     private bool IsWebhookSignatureValid(PayHereWebhookRequest request)
     {
-        var merchantSecret = _configuration["PayHere:MerchantSecret"];
-        if (string.IsNullOrWhiteSpace(merchantSecret))
-        {
-            // For local sandbox until secrets are configured.
-            return true;
-        }
-
-        var generated = PayHereHashHelper.BuildWebhookSignature(
-            request.merchant_id,
-            request.order_id,
-            request.payhere_amount,
-            request.payhere_currency,
-            request.status_code,
+        var merchantSecret = _configuration["PayHere:MerchantSecret"] ?? string.Empty;
+        return MyWedding.Infrastructure.Payments.PayHereHashHelper.IsWebhookSignatureValid(
+            new PayHereWebhookNotification(
+                request.merchant_id,
+                request.order_id,
+                request.payment_id,
+                request.payhere_amount,
+                request.payhere_currency,
+                request.status_code,
+                request.md5sig,
+                request.method),
             merchantSecret);
-        return string.Equals(generated, request.md5sig, StringComparison.OrdinalIgnoreCase);
     }
 }
 

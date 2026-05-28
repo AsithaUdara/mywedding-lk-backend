@@ -34,6 +34,11 @@ namespace MyWedding.Tasks.Infrastructure.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<bool> AnyByEventIdAsync(Guid eventId, CancellationToken cancellationToken = default)
+        {
+            return await _context.EventTasks.AnyAsync(t => t.EventId == eventId, cancellationToken);
+        }
+
         public async Task AddAsync(EventTask task, CancellationToken cancellationToken = default)
         {
             await _context.EventTasks.AddAsync(task, cancellationToken);

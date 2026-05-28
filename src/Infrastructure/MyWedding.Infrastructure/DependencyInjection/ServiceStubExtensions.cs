@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using MyWedding.Infrastructure.Services.Mocks;
+using MyWedding.Infrastructure.Services;
 using MyWedding.SharedKernel.Interfaces;
 
 namespace MyWedding.Infrastructure.DependencyInjection;
@@ -8,8 +8,8 @@ public static class ServiceStubExtensions
 {
     public static IServiceCollection AddServiceStubs(this IServiceCollection services)
     {
-        services.AddScoped<IAiCopilotService, MockAiCopilotService>();
-        services.AddScoped<IPaymentGatewayService, MockPaymentGatewayService>();
+        services.AddHttpClient<IAiCopilotService, OpenAiCopilotService>();
+        services.AddScoped<IPaymentGatewayService, PayHerePaymentGatewayService>();
         return services;
     }
 }
