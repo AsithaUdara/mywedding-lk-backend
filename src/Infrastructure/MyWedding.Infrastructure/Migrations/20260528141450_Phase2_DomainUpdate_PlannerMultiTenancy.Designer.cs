@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MyWedding.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using MyWedding.Infrastructure.Persistence;
 namespace MyWedding.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260528141450_Phase2_DomainUpdate_PlannerMultiTenancy")]
+    partial class Phase2_DomainUpdate_PlannerMultiTenancy
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,40 +25,36 @@ namespace MyWedding.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("MyWedding.Domain.Entities.AuditLogItem", b =>
+            modelBuilder.Entity("MyWedding.Domain.Entities.ActivityFeedItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("ActionType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ActorId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<Guid>("EventId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("MetadataJson")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("ItemType")
+                        .HasColumnType("int");
 
-                    b.Property<DateTime>("TimestampUtc")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ActorId");
-
                     b.HasIndex("EventId");
 
-                    b.ToTable("AuditLogItems", (string)null);
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ActivityFeedItems");
                 });
 
             modelBuilder.Entity("MyWedding.Domain.Entities.BookingContract", b =>
@@ -995,21 +994,21 @@ namespace MyWedding.Infrastructure.Migrations
                     b.ToTable("WeddingPlanners");
                 });
 
-            modelBuilder.Entity("MyWedding.Domain.Entities.AuditLogItem", b =>
+            modelBuilder.Entity("MyWedding.Domain.Entities.ActivityFeedItem", b =>
                 {
-                    b.HasOne("MyWedding.Domain.Entities.User", "Actor")
-                        .WithMany()
-                        .HasForeignKey("ActorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("MyWedding.Domain.Entities.WeddingEvent", "WeddingEvent")
                         .WithMany()
                         .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Actor");
+                    b.HasOne("MyWedding.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
 
                     b.Navigation("WeddingEvent");
                 });

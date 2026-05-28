@@ -11,6 +11,7 @@ namespace MyWedding.Vendors.Application.Features.Vendors.Queries.GetVendorById
         public string? WebsiteUrl { get; set; }
         public string? ContactPhone { get; set; }
         public string? City { get; set; }
+        public string? Province { get; set; }
         public VerificationStatus VerificationStatus { get; set; }
         public decimal AverageRating { get; set; }
         public string? CoverImageUrl { get; set; }

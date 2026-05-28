@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Enums;
+using MyWedding.API.PayHere;
 using MyWedding.Infrastructure.Persistence;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace MyWedding.API.Controllers;
@@ -76,29 +76,41 @@ public class PaymentsController : ControllerBase
 
         var sandboxUrl = _configuration["PayHere:SandboxCheckoutUrl"] ?? "https://sandbox.payhere.lk/pay/checkout";
         var merchantId = _configuration["PayHere:MerchantId"] ?? "TEST_MERCHANT";
+        var merchantSecret = _configuration["PayHere:MerchantSecret"] ?? "";
         var notifyUrl = _configuration["PayHere:NotifyUrl"] ?? $"{Request.Scheme}://{Request.Host}/api/payments/payhere/webhook";
-        var returnUrl = _configuration["PayHere:ReturnUrl"] ?? $"{_configuration["Frontend:BaseUrl"]}/events/{booking.EventId}";
+        var returnUrl = _configuration["PayHere:ReturnUrl"] ?? $"{_configuration["Frontend:BaseUrl"]}/dashboard";
         var cancelUrl = _configuration["PayHere:CancelUrl"] ?? returnUrl;
+        var orderId = bookingId.ToString();
+        var amount = booking.FinalAmount;
+        var currency = "LKR";
+
+        var checkout = new Dictionary<string, object>
+        {
+            ["checkoutUrl"] = sandboxUrl,
+            ["merchant_id"] = merchantId,
+            ["return_url"] = returnUrl,
+            ["cancel_url"] = cancelUrl,
+            ["notify_url"] = notifyUrl,
+            ["order_id"] = orderId,
+            ["items"] = "Vendor Deposit",
+            ["amount"] = amount,
+            ["currency"] = currency,
+            ["first_name"] = "Wedding",
+            ["last_name"] = "Client",
+            ["email"] = User.FindFirstValue(ClaimTypes.Email) ?? "client@mywedding.lk",
+        };
+
+        if (!string.IsNullOrWhiteSpace(merchantSecret))
+        {
+            checkout["hash"] = PayHereHashHelper.BuildCheckoutHash(
+                merchantId, orderId, amount, currency, merchantSecret);
+        }
 
         return Ok(new
         {
             bookingId,
             transactionId = transaction.Id,
-            checkout = new
-            {
-                checkoutUrl = sandboxUrl,
-                merchant_id = merchantId,
-                return_url = returnUrl,
-                cancel_url = cancelUrl,
-                notify_url = notifyUrl,
-                order_id = bookingId,
-                items = "Vendor Deposit",
-                amount = booking.FinalAmount,
-                currency = "LKR",
-                first_name = "Wedding",
-                last_name = "Client",
-                email = User.FindFirstValue(ClaimTypes.Email) ?? "client@mywedding.lk"
-            }
+            checkout
         });
     }
 
@@ -296,11 +308,13 @@ public class PaymentsController : ControllerBase
             return true;
         }
 
-        // Lightweight validation path for sandbox callbacks.
-        var raw = $"{request.merchant_id}{request.order_id}{request.payhere_amount}{request.payhere_currency}{request.status_code}{merchantSecret}";
-        using var md5 = MD5.Create();
-        var hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(raw));
-        var generated = Convert.ToHexString(hash);
+        var generated = PayHereHashHelper.BuildWebhookSignature(
+            request.merchant_id,
+            request.order_id,
+            request.payhere_amount,
+            request.payhere_currency,
+            request.status_code,
+            merchantSecret);
         return string.Equals(generated, request.md5sig, StringComparison.OrdinalIgnoreCase);
     }
 }

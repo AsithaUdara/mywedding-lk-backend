@@ -122,6 +122,69 @@ namespace MyWedding.API.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Returns the authenticated vendor's business profile (including pending verification).
+        /// </summary>
+        [HttpGet("profile")]
+        public async Task<IActionResult> GetBusinessProfile(CancellationToken cancellationToken)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var vendor = await _db.Vendors
+                .AsNoTracking()
+                .FirstOrDefaultAsync(v => v.UserId == userId, cancellationToken);
+
+            if (vendor is null)
+                return NotFound(new { message = "Vendor profile not found." });
+
+            return Ok(new
+            {
+                userId = vendor.UserId,
+                businessName = vendor.BusinessName,
+                businessDescription = vendor.BusinessDescription,
+                websiteUrl = vendor.WebsiteUrl,
+                contactPhone = vendor.ContactPhone,
+                city = vendor.City,
+                province = vendor.Province,
+                verificationStatus = vendor.VerificationStatus.ToString(),
+            });
+        }
+
+        /// <summary>
+        /// Updates location, contact, and public business details shown on the vendor listing.
+        /// </summary>
+        [HttpPut("profile")]
+        public async Task<IActionResult> UpdateBusinessProfile(
+            [FromBody] UpdateVendorBusinessProfileRequest request,
+            CancellationToken cancellationToken)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            if (string.IsNullOrWhiteSpace(request.BusinessName))
+                return BadRequest(new { message = "Business name is required." });
+
+            if (string.IsNullOrWhiteSpace(request.City))
+                return BadRequest(new { message = "City is required for your listing location." });
+
+            var vendor = await _db.Vendors.FirstOrDefaultAsync(v => v.UserId == userId, cancellationToken);
+            if (vendor is null)
+                return NotFound(new { message = "Vendor profile not found." });
+
+            vendor.BusinessName = request.BusinessName.Trim();
+            vendor.BusinessDescription = string.IsNullOrWhiteSpace(request.BusinessDescription)
+                ? null
+                : request.BusinessDescription.Trim();
+            vendor.WebsiteUrl = string.IsNullOrWhiteSpace(request.WebsiteUrl) ? null : request.WebsiteUrl.Trim();
+            vendor.ContactPhone = string.IsNullOrWhiteSpace(request.ContactPhone) ? null : request.ContactPhone.Trim();
+            vendor.City = request.City.Trim();
+            vendor.Province = string.IsNullOrWhiteSpace(request.Province) ? null : request.Province.Trim();
+
+            await _db.SaveChangesAsync(cancellationToken);
+            return Ok(new { message = "Business profile updated." });
+        }
+
         [HttpGet("subscription")]
         public async Task<IActionResult> GetSubscription(CancellationToken cancellationToken)
         {
@@ -289,3 +352,11 @@ public record VendorBillingProfileRequest(
     string Last4,
     byte? ExpiryMonth,
     short? ExpiryYear);
+
+public record UpdateVendorBusinessProfileRequest(
+    string BusinessName,
+    string? BusinessDescription,
+    string? WebsiteUrl,
+    string? ContactPhone,
+    string City,
+    string? Province);

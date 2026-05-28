@@ -44,6 +44,7 @@ namespace MyWedding.Vendors.Application.Features.Vendors.Queries.GetVendorById
                 WebsiteUrl = vendor.WebsiteUrl,
                 ContactPhone = vendor.ContactPhone,
                 City = vendor.City ?? "N/A",
+                Province = vendor.Province,
                 VerificationStatus = vendor.VerificationStatus,
                 AverageRating = vendor.AverageRating,
                 CoverImageUrl = vendor.CoverImageUrl,

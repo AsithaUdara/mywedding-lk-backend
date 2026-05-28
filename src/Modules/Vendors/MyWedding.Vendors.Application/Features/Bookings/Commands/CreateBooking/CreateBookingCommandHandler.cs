@@ -1,6 +1,6 @@
 using MediatR;
 using MyWedding.Domain.Enums;
-
+using MyWedding.Domain.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -15,6 +15,7 @@ namespace MyWedding.Vendors.Application.Features.Bookings.Commands.CreateBooking
         private readonly IWeddingEventRepository _eventRepository;
         private readonly IVendorServiceRepository _serviceRepository;
         private readonly IVendorRepository _vendorRepository;
+        private readonly IEventOrganizerRepository _organizerRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<CreateBookingCommandHandler> _logger;
 
@@ -23,6 +24,7 @@ namespace MyWedding.Vendors.Application.Features.Bookings.Commands.CreateBooking
             IWeddingEventRepository eventRepository,
             IVendorServiceRepository serviceRepository,
             IVendorRepository vendorRepository,
+            IEventOrganizerRepository organizerRepository,
             IUnitOfWork unitOfWork,
             ILogger<CreateBookingCommandHandler> logger)
         {
@@ -30,6 +32,7 @@ namespace MyWedding.Vendors.Application.Features.Bookings.Commands.CreateBooking
             _eventRepository = eventRepository;
             _serviceRepository = serviceRepository;
             _vendorRepository = vendorRepository;
+            _organizerRepository = organizerRepository;
             _unitOfWork = unitOfWork;
             _logger = logger;
         }
@@ -38,20 +41,21 @@ namespace MyWedding.Vendors.Application.Features.Bookings.Commands.CreateBooking
         {
             _logger.LogInformation("Attempting to create booking for EventId: {EventId} by UserId: {UserId}", request.EventId, request.UserId);
 
-            // --- STRICT SECURITY CHECK: Only Owner can book ---
             var weddingEvent = await _eventRepository.GetByIdAsync(request.EventId, cancellationToken);
             if (weddingEvent is null)
             {
                 throw new NotFoundException($"Event with ID {request.EventId} not found.");
             }
 
-            // Only the creator (Owner) is allowed to initiate a booking
-            if (weddingEvent.CreatedById != request.UserId)
+            if (!await CanUserBookForEventAsync(weddingEvent.CreatedById, request.EventId, request.UserId, cancellationToken))
             {
-                _logger.LogWarning("Forbidden: UserId {UserId} attempted to book for EventId {EventId} but is NOT the owner.", request.UserId, request.EventId);
-                throw new ForbiddenAccessException("Only the Event Owner has the authority to book vendors.");
+                _logger.LogWarning(
+                    "Forbidden: UserId {UserId} cannot book for EventId {EventId} (not owner/editor).",
+                    request.UserId,
+                    request.EventId);
+                throw new ForbiddenAccessException(
+                    "You do not have permission to book vendors for this event. Only the event owner or members with Editor access can book.");
             }
-            // --- END OF SECURITY CHECK ---
 
             var service = await _serviceRepository.GetByIdAsync(request.ServiceId, cancellationToken);
             if (service is null)
@@ -104,6 +108,19 @@ namespace MyWedding.Vendors.Application.Features.Bookings.Commands.CreateBooking
             _logger.LogInformation("Successfully created BookingId: {BookingId} for EventId: {EventId}", newBooking.Id, request.EventId);
 
             return newBooking.Id;
+        }
+
+        private async Task<bool> CanUserBookForEventAsync(
+            string createdById,
+            Guid eventId,
+            string userId,
+            CancellationToken cancellationToken)
+        {
+            if (createdById == userId)
+                return true;
+
+            var organizer = await _organizerRepository.GetOrganizerAsync(eventId, userId, cancellationToken);
+            return organizer is not null && organizer.PermissionLevel != PermissionLevel.Viewer;
         }
     }
 }
