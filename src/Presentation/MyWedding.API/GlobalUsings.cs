@@ -31,6 +31,7 @@ global using MyWedding.Events.Application.Features.Events;
 global using MyWedding.Events.Application.Features.Events.Commands;
 global using MyWedding.Events.Application.Features.Events.Commands.CreateEvent;
 global using MyWedding.Events.Application.Features.Events.Commands.SetTotalBudget;
+global using MyWedding.Events.Application.Features.Events.Commands.UpdateEventLifecycleStage;
 global using MyWedding.Events.Application.Features.Events.Queries;
 global using MyWedding.Events.Application.Features.Events.Queries.GetBudgetOverview;
 global using MyWedding.Events.Application.Features.Events.Queries.GetEventById;
@@ -66,6 +67,7 @@ global using MyWedding.Collaboration.Application.Features.Messages.Commands.Post
 global using MyWedding.Tasks.Application.Features.Tasks.Queries.GetTasksByEventId;
 global using MyWedding.Tasks.Application.Features.Tasks.Commands.CreateTask;
 global using MyWedding.Tasks.Application.Features.Tasks.Commands.UpdateTaskStatus;
+global using MyWedding.Tasks.Application.Features.Tasks.Commands.UpdateTaskSchedule;
 global using MyWedding.Vendors.Application.Features.Bookings.Queries.GetVendorBookings;
 global using MyWedding.Vendors.Application.Features.Bookings.Queries.GetEventBookings;
 global using MyWedding.Vendors.Application.Features.Bookings.Commands.UpdateBookingStatus;

@@ -51,7 +51,9 @@ namespace MyWedding.Tasks.Application.Features.Tasks.Commands.CreateTask
                 EventId = request.EventId,
                 Title = request.Title,
                 Description = request.Description,
+                StartDate = request.StartDate,
                 DueDate = request.DueDate,
+                DependsOnTaskId = request.DependsOnTaskId,
                 Status = MyWedding.Domain.Enums.TaskStatus.ToDo,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow

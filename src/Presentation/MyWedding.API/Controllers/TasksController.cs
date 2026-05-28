@@ -35,7 +35,7 @@ namespace MyWedding.API.Controllers
         [HttpGet("api/events/{eventId:guid}/tasks")]
         public async Task<IActionResult> GetTasksForEvent(Guid eventId)
         {
-            var query = new GetTasksByEventIdQuery { EventId = eventId };
+            var query = new GetTasksByEventIdQuery { EventId = eventId, UserId = GetUserId() };
             var tasks = await _mediator.Send(query);
             return Ok(tasks);
         }
@@ -56,6 +56,8 @@ namespace MyWedding.API.Controllers
                 Title = request.Title,
                 Description = request.Description,
                 DueDate = request.DueDate,
+                StartDate = request.StartDate,
+                DependsOnTaskId = request.DependsOnTaskId,
                 UserId = userId
             };
 
@@ -90,11 +92,49 @@ namespace MyWedding.API.Controllers
 
             return NoContent();
         }
+
+        /// <summary>
+        /// Updates task schedule fields (Gantt drag-and-drop).
+        /// </summary>
+        [HttpPatch("api/events/{eventId:guid}/tasks/{taskId:guid}")]
+        public async Task<IActionResult> UpdateTaskSchedule(
+            Guid eventId,
+            Guid taskId,
+            [FromBody] UpdateTaskScheduleRequest request)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var command = new UpdateTaskScheduleCommand
+            {
+                EventId = eventId,
+                TaskId = taskId,
+                StartDate = request.StartDate,
+                DueDate = request.DueDate,
+                DependsOnTaskId = request.DependsOnTaskId,
+                UpdateDependency = request.UpdateDependency,
+                UserId = userId
+            };
+
+            await _mediator.Send(command);
+
+            return NoContent();
+        }
     }
 
     /// <summary>Request DTO for creating a new task.</summary>
-    public record CreateTaskRequest(string Title, string? Description, DateTime? DueDate);
+    public record CreateTaskRequest(string Title, string? Description, DateTime? DueDate, DateTime? StartDate, Guid? DependsOnTaskId);
 
     /// <summary>Request DTO for updating a task's status.</summary>
     public record UpdateTaskStatusRequest(MyWedding.Domain.Enums.TaskStatus NewStatus);
+
+    /// <summary>Request DTO for updating task schedule (Gantt).</summary>
+    public record UpdateTaskScheduleRequest(
+        DateTime? StartDate,
+        DateTime? DueDate,
+        Guid? DependsOnTaskId,
+        bool UpdateDependency = false);
 }

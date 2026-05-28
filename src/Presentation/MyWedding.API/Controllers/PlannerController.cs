@@ -1,9 +1,11 @@
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Enums;
 using MyWedding.Domain.Interfaces;
+using MyWedding.Events.Application.Features.Events.Commands.UpdateEventLifecycleStage;
 using MyWedding.Infrastructure.Persistence;
 using System.Security.Claims;
 
@@ -16,11 +18,16 @@ public class PlannerController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
     private readonly IFirebaseAuthService _firebaseAuthService;
+    private readonly IMediator _mediator;
 
-    public PlannerController(ApplicationDbContext db, IFirebaseAuthService firebaseAuthService)
+    public PlannerController(
+        ApplicationDbContext db,
+        IFirebaseAuthService firebaseAuthService,
+        IMediator mediator)
     {
         _db = db;
         _firebaseAuthService = firebaseAuthService;
+        _mediator = mediator;
     }
 
     private string? GetCurrentUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -245,6 +252,12 @@ public class PlannerController : ControllerBase
 
         var eventIds = links.Select(e => e.EventId).Distinct().ToList();
 
+        var weddingEventsById = await _db.WeddingEvents
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(w => eventIds.Contains(w.Id))
+            .ToDictionaryAsync(w => w.Id, cancellationToken);
+
         var expenseByEvent = await _db.Expenses
             .AsNoTracking()
             .Where(e => eventIds.Contains(e.EventId))
@@ -267,6 +280,7 @@ public class PlannerController : ControllerBase
 
         var result = links.Select(e =>
         {
+            weddingEventsById.TryGetValue(e.EventId, out var weddingEvent);
             var spent = expenseByEvent.TryGetValue(e.EventId, out var total) ? total : 0m;
             var booking = bookingByEvent.TryGetValue(e.EventId, out var b)
                 ? b
@@ -275,20 +289,38 @@ public class PlannerController : ControllerBase
             return new PlannerEventListItemDto(
                 e.Id,
                 e.EventId,
-                e.WeddingEvent?.EventName ?? "Untitled Event",
-                e.WeddingEvent?.EventDate ?? DateTime.UtcNow,
+                weddingEvent?.EventName ?? e.WeddingEvent?.EventName ?? "Untitled Event",
+                weddingEvent?.EventDate ?? e.WeddingEvent?.EventDate ?? DateTime.UtcNow,
                 e.ClientUserId,
                 e.ClientUser?.Email ?? string.Empty,
                 e.Status.ToString(),
-                e.WeddingEvent?.TotalBudget ?? 0m,
+                weddingEvent?.TotalBudget ?? e.WeddingEvent?.TotalBudget ?? 0m,
                 spent,
                 booking.Requested,
                 booking.Confirmed,
-                booking.Completed
+                booking.Completed,
+                (weddingEvent ?? e.WeddingEvent)?.EventLifecycleStage.ToString() ?? EventLifecycleStage.Lead.ToString()
             );
         });
 
         return Ok(result);
+    }
+
+    [HttpPatch("events/{eventId:guid}/stage")]
+    public async Task<IActionResult> UpdateEventStage(Guid eventId, [FromBody] UpdateEventLifecycleStageRequest request, CancellationToken cancellationToken)
+    {
+        if (!Enum.TryParse<EventLifecycleStage>(request.Stage, true, out var stage))
+        {
+            return BadRequest(new { message = "Invalid lifecycle stage." });
+        }
+
+        await _mediator.Send(new UpdateEventLifecycleStageCommand
+        {
+            EventId = eventId,
+            NewStage = stage
+        }, cancellationToken);
+
+        return Ok(new { eventId, stage = stage.ToString() });
     }
 
     [HttpPost("events")]
@@ -332,6 +364,8 @@ public class PlannerController : ControllerBase
             EventName = request.EventName.Trim(),
             EventDate = request.EventDate,
             TotalBudget = request.TotalBudget,
+            ManagingPlannerId = plannerId,
+            EventLifecycleStage = EventLifecycleStage.Lead,
             CreatedById = plannerId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -503,6 +537,7 @@ public record UpdatePlannerProfileRequest(string BusinessName, string? BusinessD
 public record PlannerClientEventSummary(Guid PlannerClientEventId, Guid EventId, string EventName, DateTime EventDate, string ClientUserId, string ClientEmail, string Status);
 public record PlannerUpcomingEventDto(Guid EventId, string EventName, DateTime EventDate, string ClientEmail, string Status, decimal TotalBudget);
 public record PlannerClientDto(string ClientUserId, string ClientEmail, int TotalEvents, int ActiveEvents, DateTime LastActivityAt);
+public record UpdateEventLifecycleStageRequest(string Stage);
 public record PlannerEventListItemDto(
     Guid PlannerClientEventId,
     Guid EventId,
@@ -515,7 +550,8 @@ public record PlannerEventListItemDto(
     decimal SpentBudget,
     int RequestedBookings,
     int ConfirmedBookings,
-    int CompletedBookings
+    int CompletedBookings,
+    string EventLifecycleStage
 );
 public record PlannerOverviewResponse(
     string PlannerId,
