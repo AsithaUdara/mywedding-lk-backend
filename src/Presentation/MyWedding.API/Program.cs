@@ -24,7 +24,9 @@ using MyWedding.Vendors.Application;
 using MyWedding.Collaboration.Application;
 using MyWedding.API.Middleware;
 using MyWedding.SharedKernel.Behaviors;
+using MyWedding.SharedKernel.Interfaces;
 using MyWedding.Infrastructure.Persistence.Repositories;
+using MyWedding.Infrastructure.Services.Mocks;
 using System.Text.Encodings.Web;
 
 // Enable TLS 1.2 and 1.3 explicitly for Google Auth connectivity
@@ -81,6 +83,17 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentPlannerAccessor, CurrentPlannerAccessor>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>());
+
+// --- Phase 8: External service stubs (AI + payments) ---
+// TODO: Human to implement — add your OpenAI API key to configuration (appsettings / user secrets):
+//       "OpenAI": { "ApiKey": "<your-openai-api-key>", "Model": "gpt-4o" }
+//       Then replace MockAiCopilotService with a real OpenAiCopilotService implementation.
+builder.Services.AddScoped<IAiCopilotService, MockAiCopilotService>();
+
+// TODO: Human to implement — add your PayHere credentials to configuration:
+//       "PayHere": { "MerchantId": "<merchant-id>", "MerchantSecret": "<merchant-secret>", ... }
+//       Then replace MockPaymentGatewayService with a real PayHerePaymentGatewayService implementation.
+builder.Services.AddScoped<IPaymentGatewayService, MockPaymentGatewayService>();
 
 // 6. Initialize Firebase Admin SDK
 builder.Services.InitializeFirebase(builder.Configuration);

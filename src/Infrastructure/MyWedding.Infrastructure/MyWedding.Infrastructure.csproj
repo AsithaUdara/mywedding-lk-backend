@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Core\MyWedding.Domain\MyWedding.Domain.csproj" />
+    <ProjectReference Include="..\..\Shared\MyWedding.SharedKernel\MyWedding.SharedKernel.csproj" />
   </ItemGroup>
 
 </Project>
