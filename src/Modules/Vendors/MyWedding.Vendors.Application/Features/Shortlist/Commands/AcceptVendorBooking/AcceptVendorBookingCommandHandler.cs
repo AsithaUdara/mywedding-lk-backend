@@ -42,7 +42,7 @@ public class AcceptVendorBookingCommandHandler : IRequestHandler<AcceptVendorBoo
             });
         }
 
-        booking.Status = BookingStatus.Confirmed;
+        booking.Status = BookingStatus.AwaitingPayment;
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var shortlistItems = await _shortlistRepository.GetByEventIdAsync(booking.EventId, cancellationToken);
@@ -63,8 +63,8 @@ public class AcceptVendorBookingCommandHandler : IRequestHandler<AcceptVendorBoo
         {
             bookingId = booking.Id,
             eventId = booking.EventId,
-            status = BookingStatus.Confirmed.ToString(),
-            message = "Your vendor booking has been confirmed."
+            status = BookingStatus.AwaitingPayment.ToString(),
+            message = "The vendor accepted your request. Pay the deposit to confirm the booking."
         };
 
         await _notificationService.NotifyBookingConfirmedAsync(
@@ -79,8 +79,8 @@ public class AcceptVendorBookingCommandHandler : IRequestHandler<AcceptVendorBoo
                 {
                     bookingId = booking.Id,
                     eventId = booking.EventId,
-                    status = BookingStatus.Confirmed.ToString(),
-                    message = "A vendor has confirmed a booking for your client event."
+                    status = BookingStatus.AwaitingPayment.ToString(),
+                    message = "A vendor accepted a booking request — awaiting client deposit."
                 },
                 cancellationToken);
         }
