@@ -22,10 +22,12 @@ using MyWedding.Tasks.Application;
 using MyWedding.Budget.Application;
 using MyWedding.Vendors.Application;
 using MyWedding.Collaboration.Application;
+using MyWedding.API.Features.Planner;
 using MyWedding.API.Middleware;
 using MyWedding.SharedKernel.Behaviors;
 using MyWedding.SharedKernel.Interfaces;
 using MyWedding.Infrastructure.Persistence.Repositories;
+using MyWedding.Infrastructure.DependencyInjection;
 using MyWedding.Infrastructure.Services;
 using System.Text.Encodings.Web;
 
@@ -61,10 +63,12 @@ builder.Services.AddTasksApplication();
 builder.Services.AddBudgetApplication();
 builder.Services.AddVendorsApplication();
 builder.Services.AddCollaborationApplication();
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreatePlannerEventCommand).Assembly));
 
-// MediatR Pipeline Behaviors
+// MediatR Pipeline Behaviors (outermost registered last)
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(AuthorizationBehavior<,>));
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(PlannerSubscriptionBehavior<,>));
 
 // 4. Add DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -83,10 +87,12 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentPlannerAccessor, CurrentPlannerAccessor>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+builder.Services.AddScoped<IPlannerSubscriptionGate, PlannerSubscriptionGate>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
-// --- Phase 8 / Sprint 5: AI co-pilot + PayHere payments ---
-// Configure OpenAI:ApiKey and PayHere:* in appsettings or user secrets.
+// --- External integrations (SMTP, OpenAI, PayHere) — see docs/REAL_API_SETUP.md ---
+builder.Services.AddExternalIntegrations(builder.Configuration);
+IntegrationServiceExtensions.LogIntegrationStatus(builder.Configuration);
 builder.Services.AddHttpClient<IAiCopilotService, OpenAiCopilotService>();
 builder.Services.AddScoped<IPaymentGatewayService, PayHerePaymentGatewayService>();
 

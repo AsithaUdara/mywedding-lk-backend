@@ -59,6 +59,13 @@ public class PayHerePaymentGatewayService : IPaymentGatewayService
             .AnyAsync(t => t.BookingId == request.BookingId && t.Status == PaymentTransactionStatus.Paid, cancellationToken);
         if (existingPaid)
         {
+            await SyncShortlistDepositPaidAsync(request.BookingId, cancellationToken);
+            if (booking.Status == BookingStatus.AwaitingPayment)
+            {
+                booking.Status = BookingStatus.Confirmed;
+                await _db.SaveChangesAsync(cancellationToken);
+            }
+
             return new SplitPaymentResult(
                 Success: true,
                 GatewayName: "PayHere",
@@ -178,6 +185,7 @@ public class PayHerePaymentGatewayService : IPaymentGatewayService
             tx.PaidAt = DateTime.UtcNow;
             booking.Status = BookingStatus.Confirmed;
 
+            await SyncShortlistDepositPaidAsync(booking.Id, cancellationToken);
             await EnsureDepositExpenseAsync(booking, cancellationToken);
             await EnsureCommissionSettlementAsync(booking, cancellationToken);
         }
@@ -189,6 +197,19 @@ public class PayHerePaymentGatewayService : IPaymentGatewayService
 
         await _db.SaveChangesAsync(cancellationToken);
         return new PayHereWebhookProcessResult(true, false, false, "Webhook processed.");
+    }
+
+    private async Task SyncShortlistDepositPaidAsync(Guid bookingId, CancellationToken cancellationToken)
+    {
+        var shortlistItems = await _db.VendorShortlistItems
+            .Where(i => i.VendorBookingId == bookingId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var item in shortlistItems)
+        {
+            item.Status = VendorShortlistItemStatus.DepositPaid;
+            item.UpdatedAt = DateTime.UtcNow;
+        }
     }
 
     private async Task EnsureCommissionSettlementAsync(VendorBooking booking, CancellationToken cancellationToken)

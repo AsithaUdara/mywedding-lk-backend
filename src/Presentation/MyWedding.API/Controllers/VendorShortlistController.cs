@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MyWedding.Vendors.Application.Features.Shortlist.Commands.AcceptVendorBooking;
+using MyWedding.Vendors.Application.Features.Shortlist.Commands.DeclineVendorBooking;
 using MyWedding.Vendors.Application.Features.Shortlist.Commands.ApproveVendorFromShortlist;
 using MyWedding.Vendors.Application.Features.Shortlist.Commands.CreateVendorShortlist;
 using MyWedding.Vendors.Application.Features.Shortlist.Commands.RequestVendorBooking;
@@ -129,6 +130,22 @@ public class VendorShortlistController : ControllerBase
         });
 
         return Ok(new { message = "Booking accepted." });
+    }
+
+    [HttpPost("api/bookings/{bookingId:guid}/decline")]
+    public async Task<IActionResult> DeclineBooking(Guid bookingId)
+    {
+        var userId = GetUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        await _mediator.Send(new DeclineVendorBookingCommand
+        {
+            BookingId = bookingId,
+            VendorUserId = userId
+        });
+
+        return Ok(new { message = "Booking declined." });
     }
 }
 

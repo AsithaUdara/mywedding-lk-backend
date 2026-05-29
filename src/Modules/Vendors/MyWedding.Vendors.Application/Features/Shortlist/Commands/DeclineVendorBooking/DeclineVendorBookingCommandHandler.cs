@@ -1,39 +1,34 @@
 using MediatR;
 using MyWedding.Domain.Enums;
 using MyWedding.Domain.Interfaces;
+using MyWedding.SharedKernel.Exceptions;
 using MyWedding.SharedKernel.Interfaces;
 
-namespace MyWedding.Vendors.Application.Features.Shortlist.Commands.AcceptVendorBooking;
+namespace MyWedding.Vendors.Application.Features.Shortlist.Commands.DeclineVendorBooking;
 
-public class AcceptVendorBookingCommandHandler : IRequestHandler<AcceptVendorBookingCommand, Unit>
+public class DeclineVendorBookingCommandHandler : IRequestHandler<DeclineVendorBookingCommand, Unit>
 {
     private readonly IVendorBookingRepository _bookingRepository;
     private readonly IVendorShortlistRepository _shortlistRepository;
     private readonly IWeddingEventRepository _eventRepository;
     private readonly INotificationService _notificationService;
-    private readonly IEmailService _emailService;
-    private readonly IUserRepository _userRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public AcceptVendorBookingCommandHandler(
+    public DeclineVendorBookingCommandHandler(
         IVendorBookingRepository bookingRepository,
         IVendorShortlistRepository shortlistRepository,
         IWeddingEventRepository eventRepository,
         INotificationService notificationService,
-        IEmailService emailService,
-        IUserRepository userRepository,
         IUnitOfWork unitOfWork)
     {
         _bookingRepository = bookingRepository;
         _shortlistRepository = shortlistRepository;
         _eventRepository = eventRepository;
         _notificationService = notificationService;
-        _emailService = emailService;
-        _userRepository = userRepository;
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Unit> Handle(AcceptVendorBookingCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(DeclineVendorBookingCommand request, CancellationToken cancellationToken)
     {
         var booking = await _bookingRepository.GetByIdAsync(request.BookingId, cancellationToken);
         if (booking is null)
@@ -46,11 +41,11 @@ public class AcceptVendorBookingCommandHandler : IRequestHandler<AcceptVendorBoo
         {
             throw new ValidationException(new Dictionary<string, string[]>
             {
-                ["status"] = ["Only requested bookings can be accepted by the vendor."]
+                ["status"] = ["Only requested bookings can be declined by the vendor."]
             });
         }
 
-        booking.Status = BookingStatus.AwaitingPayment;
+        booking.Status = BookingStatus.Cancelled;
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var shortlistItems = await _shortlistRepository.GetByEventIdAsync(booking.EventId, cancellationToken);
@@ -60,48 +55,39 @@ public class AcceptVendorBookingCommandHandler : IRequestHandler<AcceptVendorBoo
             var tracked = await _shortlistRepository.GetByIdAsync(linkedItem.Id, cancellationToken);
             if (tracked is not null)
             {
-                tracked.Status = VendorShortlistItemStatus.BookingAccepted;
+                tracked.Status = VendorShortlistItemStatus.Declined;
                 tracked.UpdatedAt = DateTime.UtcNow;
                 _shortlistRepository.Update(tracked);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
             }
         }
 
-        var payload = new
+        var vendorName = booking.VendorService?.Vendor?.BusinessName ?? "A vendor";
+        var clientPayload = new
         {
             bookingId = booking.Id,
             eventId = booking.EventId,
-            status = BookingStatus.AwaitingPayment.ToString(),
-            message = "The vendor accepted your request. Pay the deposit to confirm the booking."
+            status = VendorShortlistItemStatus.Declined.ToString(),
+            message = $"{vendorName} declined your booking request. Your planner can suggest another vendor."
         };
 
         await _notificationService.NotifyBookingConfirmedAsync(
-            booking.BookedById, payload, cancellationToken);
+            booking.BookedById,
+            clientPayload,
+            cancellationToken);
 
         var weddingEvent = await _eventRepository.GetByIdUnfilteredAsync(booking.EventId, cancellationToken);
-        var client = await _userRepository.GetByIdAsync(booking.BookedById, cancellationToken);
-        if (!string.IsNullOrWhiteSpace(client?.Email))
-        {
-            await _emailService.SendVendorBookingAcceptedAsync(
-                new VendorBookingAcceptedEmailMessage(
-                    client.Email,
-                    weddingEvent?.EventName ?? "Your wedding",
-                    booking.VendorService?.Vendor?.BusinessName ?? "Vendor",
-                    booking.Id,
-                    booking.EventId),
-                cancellationToken);
-        }
-
         if (!string.IsNullOrEmpty(weddingEvent?.ManagingPlannerId))
         {
-            await _notificationService.NotifyBookingConfirmedForPlannerAsync(
+            await _notificationService.NotifyVendorBookingDeclinedForPlannerAsync(
                 weddingEvent.ManagingPlannerId,
                 new
                 {
                     bookingId = booking.Id,
                     eventId = booking.EventId,
-                    status = BookingStatus.AwaitingPayment.ToString(),
-                    message = "A vendor accepted a booking request — awaiting client deposit."
+                    vendorName,
+                    status = VendorShortlistItemStatus.Declined.ToString(),
+                    message = $"{vendorName} declined a booking request for {weddingEvent.EventName}."
                 },
                 cancellationToken);
         }

@@ -48,6 +48,13 @@ public class NotificationService : INotificationService
             .NotifyProposalReceived(payload);
     }
 
+    public Task NotifyVendorBookingDeclinedForPlannerAsync(string plannerUserId, object payload, CancellationToken cancellationToken = default)
+    {
+        return _hubContext.Clients
+            .Groups(NotificationHub.UserGroup(plannerUserId), NotificationHub.PlannerGroup(plannerUserId))
+            .NotifyVendorBookingDeclined(payload);
+    }
+
     public async Task NotifyContractSignedAsync(IEnumerable<string> userIds, object payload, CancellationToken cancellationToken = default)
     {
         var groups = userIds

@@ -1,6 +1,6 @@
-// File: .../GetMessagesByConversationId/GetMessagesByConversationIdQueryHandler.cs
 using MediatR;
 using MyWedding.Domain.Interfaces;
+using MyWedding.SharedKernel.Exceptions;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -11,15 +11,37 @@ namespace MyWedding.Collaboration.Application.Features.Messages.Queries.GetMessa
     public class GetMessagesByConversationIdQueryHandler : IRequestHandler<GetMessagesByConversationIdQuery, IEnumerable<MessageDto>>
     {
         private readonly IMessageRepository _messageRepository;
-        // TODO: Add security check to ensure user belongs to this conversation's event
+        private readonly IConversationRepository _conversationRepository;
+        private readonly IEventOrganizerRepository _organizerRepository;
 
-        public GetMessagesByConversationIdQueryHandler(IMessageRepository messageRepository)
+        public GetMessagesByConversationIdQueryHandler(
+            IMessageRepository messageRepository,
+            IConversationRepository conversationRepository,
+            IEventOrganizerRepository organizerRepository)
         {
             _messageRepository = messageRepository;
+            _conversationRepository = conversationRepository;
+            _organizerRepository = organizerRepository;
         }
 
         public async Task<IEnumerable<MessageDto>> Handle(GetMessagesByConversationIdQuery request, CancellationToken cancellationToken)
         {
+            var conversation = await _conversationRepository.GetByIdAsync(request.ConversationId, cancellationToken);
+            if (conversation == null)
+            {
+                throw new NotFoundException($"Conversation with ID '{request.ConversationId}' not found.");
+            }
+
+            var isParticipant = await _organizerRepository.IsUserAlreadyOrganizerAsync(
+                conversation.EventId,
+                request.UserId,
+                cancellationToken);
+
+            if (!isParticipant)
+            {
+                throw new ForbiddenAccessException("You do not have permission to view messages in this conversation.");
+            }
+
             var messages = await _messageRepository.GetByConversationIdAsync(request.ConversationId, cancellationToken);
             return messages.Select(m => new MessageDto(
                 m.Id,
@@ -28,7 +50,7 @@ namespace MyWedding.Collaboration.Application.Features.Messages.Queries.GetMessa
                 m.Sender!.Id,
                 m.Sender.FirstName,
                 m.Sender.LastName,
-                null // Placeholder for attachments
+                null
             ));
         }
     }

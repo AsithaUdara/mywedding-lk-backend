@@ -1,6 +1,5 @@
 using MediatR;
-
-
+using MyWedding.SharedKernel.Interfaces;
 using System;
 using System.Security.Cryptography;
 using System.Threading;
@@ -13,18 +12,24 @@ namespace MyWedding.Events.Application.Features.Invitations.Commands.InviteMembe
     {
         private readonly IEventInvitationRepository _invitationRepository;
         private readonly IEventOrganizerRepository _organizerRepository;
+        private readonly IWeddingEventRepository _eventRepository;
         private readonly ICollaborationService _collaborationService;
+        private readonly IEmailService _emailService;
         private readonly IUnitOfWork _unitOfWork;
 
         public InviteMemberCommandHandler(
             IEventInvitationRepository invitationRepository, 
             IEventOrganizerRepository organizerRepository,
+            IWeddingEventRepository eventRepository,
             ICollaborationService collaborationService,
+            IEmailService emailService,
             IUnitOfWork unitOfWork)
         {
             _invitationRepository = invitationRepository;
             _organizerRepository = organizerRepository;
+            _eventRepository = eventRepository;
             _collaborationService = collaborationService;
+            _emailService = emailService;
             _unitOfWork = unitOfWork;
         }
 
@@ -57,6 +62,17 @@ namespace MyWedding.Events.Application.Features.Invitations.Commands.InviteMembe
 
             await _invitationRepository.AddAsync(invitation, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            var weddingEvent = await _eventRepository.GetByIdAsync(request.EventId, cancellationToken);
+            await _emailService.SendEventInvitationAsync(
+                new EventInvitationEmailMessage(
+                    request.Email,
+                    weddingEvent?.EventName ?? "Your wedding",
+                    request.EventId,
+                    token,
+                    request.Role.ToString(),
+                    request.PermissionLevel.ToString()),
+                cancellationToken);
 
             await _collaborationService.NotifyInvitationAcceptedAsync(request.EventId, request.Email);
 

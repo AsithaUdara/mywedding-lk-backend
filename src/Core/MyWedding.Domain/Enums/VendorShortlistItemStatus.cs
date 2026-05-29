@@ -7,5 +7,9 @@ public enum VendorShortlistItemStatus
     ClientApproved = 2,
     ClientRejected = 3,
     BookingRequested = 4,
-    BookingAccepted = 5
+    BookingAccepted = 5,
+    /// <summary>Vendor declined the booking request.</summary>
+    Declined = 6,
+    /// <summary>Client deposit paid; vendor booking confirmed.</summary>
+    DepositPaid = 7
 }

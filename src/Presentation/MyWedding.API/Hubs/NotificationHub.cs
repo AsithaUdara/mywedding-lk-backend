@@ -14,6 +14,7 @@ public interface INotificationHubClient
     Task NotifyNewInquiry(object payload);
     Task NotifyProposalReceived(object payload);
     Task NotifyContractSigned(object payload);
+    Task NotifyVendorBookingDeclined(object payload);
 }
 
 [Authorize]

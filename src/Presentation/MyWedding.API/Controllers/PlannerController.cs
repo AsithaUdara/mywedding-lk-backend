@@ -5,8 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Enums;
 using MyWedding.Domain.Interfaces;
+using MyWedding.API.Features.Planner;
 using MyWedding.Events.Application.Features.Events.Commands.UpdateEventLifecycleStage;
-using MyWedding.Tasks.Application.Features.Tasks.Commands.GenerateTaskTemplate;
 using MyWedding.Infrastructure.Persistence;
 using System.Security.Claims;
 
@@ -331,92 +331,21 @@ public class PlannerController : ControllerBase
         if (string.IsNullOrWhiteSpace(plannerId))
             return Unauthorized();
 
-        var planner = await _db.WeddingPlanners.FirstOrDefaultAsync(p => p.UserId == plannerId, cancellationToken);
-        if (planner is null)
-            return Forbid();
-
-        var activeSub = await _db.PlannerSubscriptions
-            .Where(s => s.PlannerId == plannerId && s.Status == SubscriptionStatus.Active)
-            .OrderByDescending(s => s.CreatedAt)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        var maxEvents = activeSub?.MaxConcurrentEvents ?? 1;
-        var activeCount = await _db.PlannerClientEvents.CountAsync(
-            e => e.PlannerId == plannerId && e.Status == PlannerClientEventStatus.Active,
-            cancellationToken);
-        if (activeCount >= maxEvents)
+        var result = await _mediator.Send(new CreatePlannerEventCommand
         {
-            return BadRequest(new
-            {
-                message = "Planner event limit reached for current subscription.",
-                maxConcurrentEvents = maxEvents
-            });
-        }
-
-        var clientUser = await ResolveClientUserAsync(request.ClientUserId, request.ClientEmail, cancellationToken);
-        if (clientUser is null)
-        {
-            return BadRequest(new { message = "Client user not found. Provide a valid clientUserId or synced client email." });
-        }
-
-        var weddingEvent = new WeddingEvent
-        {
-            Id = Guid.NewGuid(),
-            EventName = request.EventName.Trim(),
+            PlannerId = plannerId,
+            EventName = request.EventName,
             EventDate = request.EventDate,
             TotalBudget = request.TotalBudget,
-            ManagingPlannerId = plannerId,
-            EventLifecycleStage = EventLifecycleStage.Lead,
-            CreatedById = plannerId,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-
-        var plannerOrganizer = new EventOrganizer
-        {
-            EventId = weddingEvent.Id,
-            UserId = plannerId,
-            Role = OrganizerRole.Planner,
-            PermissionLevel = PermissionLevel.Owner,
-            JoinedAt = DateTime.UtcNow
-        };
-
-        var clientOrganizer = new EventOrganizer
-        {
-            EventId = weddingEvent.Id,
-            UserId = clientUser.Id,
-            Role = OrganizerRole.Bride,
-            PermissionLevel = PermissionLevel.Editor,
-            JoinedAt = DateTime.UtcNow
-        };
-
-        var plannerClientEvent = new PlannerClientEvent
-        {
-            Id = Guid.NewGuid(),
-            PlannerId = plannerId,
-            EventId = weddingEvent.Id,
-            ClientUserId = clientUser.Id,
-            Status = PlannerClientEventStatus.Active,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-
-        await _db.WeddingEvents.AddAsync(weddingEvent, cancellationToken);
-        await _db.EventOrganizers.AddRangeAsync(plannerOrganizer, clientOrganizer);
-        await _db.PlannerClientEvents.AddAsync(plannerClientEvent, cancellationToken);
-        await _db.SaveChangesAsync(cancellationToken);
-
-        var tasksGenerated = await _mediator.Send(new GenerateTaskTemplateCommand
-        {
-            EventId = weddingEvent.Id,
-            UserId = plannerId
+            ClientUserId = request.ClientUserId,
+            ClientEmail = request.ClientEmail
         }, cancellationToken);
 
         return Ok(new
         {
-            eventId = weddingEvent.Id,
-            plannerClientEventId = plannerClientEvent.Id,
-            tasksGenerated
+            eventId = result.EventId,
+            plannerClientEventId = result.PlannerClientEventId,
+            tasksGenerated = result.TasksGenerated
         });
     }
 

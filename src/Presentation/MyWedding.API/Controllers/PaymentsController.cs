@@ -49,9 +49,17 @@ public class PaymentsController : ControllerBase
 
         var notifyUrl = _configuration["PayHere:NotifyUrl"]
             ?? $"{Request.Scheme}://{Request.Host}/api/payments/payhere/webhook";
-        var returnUrl = _configuration["PayHere:ReturnUrl"]
-            ?? $"{_configuration["Frontend:BaseUrl"]}/dashboard";
-        var cancelUrl = _configuration["PayHere:CancelUrl"] ?? returnUrl;
+        var frontendBase = (_configuration["Frontend:BaseUrl"] ?? "http://localhost:3000").TrimEnd('/');
+        var vendorsReturnPath =
+            $"/events/{booking.EventId}/vendors?bookingId={bookingId}&payment=return";
+        var vendorsCancelPath =
+            $"/events/{booking.EventId}/vendors?bookingId={bookingId}&payment=cancel";
+        var returnUrl = _configuration["PayHere:ReturnUrl"];
+        if (string.IsNullOrWhiteSpace(returnUrl) || returnUrl.Contains("/dashboard", StringComparison.OrdinalIgnoreCase))
+            returnUrl = $"{frontendBase}{vendorsReturnPath}";
+        var cancelUrl = _configuration["PayHere:CancelUrl"];
+        if (string.IsNullOrWhiteSpace(cancelUrl) || cancelUrl.Contains("/dashboard", StringComparison.OrdinalIgnoreCase))
+            cancelUrl = $"{frontendBase}{vendorsCancelPath}";
 
         var result = await _paymentGateway.ProcessSplitPaymentAsync(
             new SplitPaymentRequest(
