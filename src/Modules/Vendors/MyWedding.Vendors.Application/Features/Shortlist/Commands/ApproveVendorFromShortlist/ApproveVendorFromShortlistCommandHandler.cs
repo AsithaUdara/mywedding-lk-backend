@@ -45,6 +45,7 @@ public class ApproveVendorFromShortlistCommandHandler : IRequestHandler<ApproveV
         }
 
         var now = DateTime.UtcNow;
+        var weddingEvent = await _eventRepository.GetByIdUnfilteredAsync(request.EventId, cancellationToken);
 
         if (request.Reject)
         {
@@ -52,6 +53,23 @@ public class ApproveVendorFromShortlistCommandHandler : IRequestHandler<ApproveV
             item.UpdatedAt = now;
             _shortlistRepository.Update(item);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            if (!string.IsNullOrEmpty(weddingEvent?.ManagingPlannerId))
+            {
+                await _notificationService.NotifyVendorBookingDeclinedForPlannerAsync(
+                    weddingEvent.ManagingPlannerId,
+                    new
+                    {
+                        eventId = request.EventId,
+                        shortlistItemId = item.Id,
+                        categoryLabel = item.CategoryLabel,
+                        status = VendorShortlistItemStatus.ClientRejected.ToString(),
+                        message =
+                            "Your client declined a vendor proposal. Review the shortlist and send updated options."
+                    },
+                    cancellationToken);
+            }
+
             return Guid.Empty;
         }
 
@@ -62,7 +80,6 @@ public class ApproveVendorFromShortlistCommandHandler : IRequestHandler<ApproveV
         _shortlistRepository.Update(item);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var weddingEvent = await _eventRepository.GetByIdUnfilteredAsync(request.EventId, cancellationToken);
         if (!string.IsNullOrEmpty(weddingEvent?.ManagingPlannerId))
         {
             await _notificationService.NotifyBookingApprovedAsync(

@@ -25,7 +25,7 @@ public class SmtpEmailService : IEmailService
         CancellationToken cancellationToken = default)
     {
         var acceptUrl =
-            $"{_frontendBaseUrl}/invitations/accept?token={Uri.EscapeDataString(message.InvitationToken)}";
+            $"{_frontendBaseUrl}/invite/accept?token={Uri.EscapeDataString(message.InvitationToken)}";
 
         var plainText = $"""
             You have been invited to join "{message.EventName}" on MyWedding.lk as {message.Role} ({message.PermissionLevel} access).
@@ -78,6 +78,38 @@ public class SmtpEmailService : IEmailService
             cancellationToken);
     }
 
+    public async Task SendVendorRejectionAsync(
+        string toEmail,
+        string businessName,
+        CancellationToken cancellationToken = default)
+    {
+        var directoryUrl = $"{_frontendBaseUrl}/vendors";
+
+        var plainText = $"""
+            Thank you for applying to list {businessName} on MyWedding.lk.
+
+            After reviewing your submission, we are unable to approve your vendor profile at this time. This may be due to incomplete business details, missing verification documents, or information that does not meet our marketplace guidelines.
+
+            You may update your profile and contact our team if you believe this decision was made in error.
+
+            Browse the marketplace: {directoryUrl}
+            """;
+
+        var html = $"""
+            <p>Thank you for applying to list <strong>{businessName}</strong> on MyWedding.lk.</p>
+            <p>After reviewing your submission, we are unable to approve your vendor profile at this time. This may be due to incomplete business details, missing verification documents, or information that does not meet our marketplace guidelines.</p>
+            <p>You may update your profile and contact our team if you believe this decision was made in error.</p>
+            <p><a href="{directoryUrl}">Visit MyWedding.lk</a></p>
+            """;
+
+        await SendAsync(
+            toEmail,
+            "Update on your MyWedding.lk vendor application",
+            plainText,
+            html,
+            cancellationToken);
+    }
+
     private async Task SendAsync(
         string toEmail,
         string subject,
@@ -107,11 +139,53 @@ public class SmtpEmailService : IEmailService
         }.ToMessageBody();
 
         using var client = new SmtpClient();
-        await client.ConnectAsync(host, port, SecureSocketOptions.StartTls, cancellationToken);
-        await client.AuthenticateAsync(username, password, cancellationToken);
-        await client.SendAsync(message, cancellationToken);
-        await client.DisconnectAsync(true, cancellationToken);
+
+        // Windows dev machines often fail OCSP/revocation checks against Gmail SMTP.
+        var environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production";
+        if (string.Equals(environment, "Development", StringComparison.OrdinalIgnoreCase))
+        {
+            client.CheckCertificateRevocation = false;
+        }
+
+        var secureSocketOptions = ResolveSecureSocketOptions(port);
+
+        try
+        {
+            await client.ConnectAsync(host, port, secureSocketOptions, cancellationToken);
+            await client.AuthenticateAsync(username, password, cancellationToken);
+            await client.SendAsync(message, cancellationToken);
+            await client.DisconnectAsync(true, cancellationToken);
+        }
+        catch (SslHandshakeException ex)
+        {
+            _logger.LogError(
+                ex,
+                "SMTP SSL handshake failed for {Host}:{Port} ({Security}). " +
+                "For Gmail use port 587 + StartTls, or port 465 + SslOnConnect with an App Password.",
+                host,
+                port,
+                secureSocketOptions);
+            throw;
+        }
 
         _logger.LogInformation("SMTP email sent to {ToEmail} subject={Subject}", toEmail, subject);
+    }
+
+    private SecureSocketOptions ResolveSecureSocketOptions(int port)
+    {
+        var configured = _configuration["Smtp:Security"]?.Trim();
+        if (!string.IsNullOrEmpty(configured))
+        {
+            return configured.ToLowerInvariant() switch
+            {
+                "ssl" or "sslonconnect" => SecureSocketOptions.SslOnConnect,
+                "starttls" or "tls" => SecureSocketOptions.StartTls,
+                "auto" => SecureSocketOptions.Auto,
+                "none" => SecureSocketOptions.None,
+                _ => SecureSocketOptions.StartTls
+            };
+        }
+
+        return port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls;
     }
 }

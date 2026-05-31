@@ -36,8 +36,17 @@ namespace MyWedding.API.Controllers
                 PermissionLevel = request.PermissionLevel ?? MyWedding.Domain.Enums.PermissionLevel.Editor
             };
 
-            var invitationId = await _mediator.Send(command);
-            return Ok(new { InvitationId = invitationId });
+            var result = await _mediator.Send(command);
+            return Ok(new
+            {
+                invitationId = result.InvitationId,
+                emailSent = result.EmailSent,
+                acceptUrl = result.AcceptUrl,
+                emailError = result.EmailError,
+                message = result.EmailSent
+                    ? "Invitation sent successfully."
+                    : "Invitation created. Email delivery failed — share the accept link with your client."
+            });
         }
 
         // POST /api/invitations/accept

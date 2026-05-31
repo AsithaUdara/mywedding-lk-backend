@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Enums;
+using MyWedding.Infrastructure.Payments;
 using MyWedding.Infrastructure.Persistence;
 using MyWedding.SharedKernel.Interfaces;
+using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -90,6 +92,75 @@ public class PaymentsController : ControllerBase
         });
     }
 
+    [Authorize]
+    [HttpPost("planner-subscription/checkout")]
+    public async Task<IActionResult> CreatePlannerSubscriptionCheckout(
+        [FromBody] PlannerSubscriptionCheckoutRequest request,
+        CancellationToken cancellationToken)
+    {
+        var plannerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(plannerId))
+            return Unauthorized();
+
+        if (request.Tier != SubscriptionPlanTier.PlannerPro || request.MonthlyFee <= 0)
+            return BadRequest(new { message = "Checkout is only required for Planner Pro." });
+
+        var planner = await _db.WeddingPlanners
+            .Include(p => p.User)
+            .FirstOrDefaultAsync(p => p.UserId == plannerId, cancellationToken);
+        if (planner is null)
+            return NotFound(new { message = "Planner profile not found." });
+
+        var checkout = new PlannerSubscriptionCheckout
+        {
+            Id = Guid.NewGuid(),
+            PlannerId = plannerId,
+            Tier = request.Tier,
+            Amount = request.MonthlyFee,
+            Status = "Pending",
+            CreatedAt = DateTime.UtcNow,
+        };
+        await _db.PlannerSubscriptionCheckouts.AddAsync(checkout, cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var sandboxUrl = _configuration["PayHere:SandboxCheckoutUrl"] ?? "https://sandbox.payhere.lk/pay/checkout";
+        var merchantId = _configuration["PayHere:MerchantId"] ?? "TEST_MERCHANT";
+        var notifyUrl = _configuration["PayHere:NotifyUrl"]
+            ?? $"{Request.Scheme}://{Request.Host}/api/payments/payhere/webhook";
+        var frontendBase = (_configuration["Frontend:BaseUrl"] ?? "http://localhost:3000").TrimEnd('/');
+        var returnUrl = _configuration["PayHere:PlannerSubscriptionReturnUrl"]
+            ?? $"{frontendBase}/planner/billing?payment=success";
+        var cancelUrl = _configuration["PayHere:PlannerSubscriptionCancelUrl"]
+            ?? $"{frontendBase}/planner/billing?payment=cancelled";
+
+        var orderId = checkout.Id.ToString();
+        var currency = "LKR";
+        var merchantSecret = _configuration["PayHere:MerchantSecret"] ?? string.Empty;
+        var email = User.FindFirstValue(ClaimTypes.Email) ?? planner.User?.Email ?? "planner@mywedding.lk";
+        var checkoutPayload = PayHereCheckoutFormBuilder.Build(
+            sandboxUrl,
+            merchantId,
+            merchantSecret,
+            orderId,
+            request.MonthlyFee,
+            currency,
+            $"Planner {request.Tier} Plan",
+            returnUrl,
+            cancelUrl,
+            notifyUrl,
+            email,
+            firstName: planner.User?.FirstName ?? planner.BusinessName,
+            lastName: planner.User?.LastName ?? "Planner",
+            phone: planner.ContactPhone,
+            city: planner.City);
+
+        return Ok(new
+        {
+            checkoutId = checkout.Id,
+            checkout = checkoutPayload,
+        });
+    }
+
     [AllowAnonymous]
     [HttpPost("payhere/webhook")]
     public async Task<IActionResult> HandlePayHereWebhook([FromForm] PayHereWebhookRequest request, CancellationToken cancellationToken)
@@ -97,14 +168,24 @@ public class PaymentsController : ControllerBase
         if (!Guid.TryParse(request.order_id, out var orderId))
             return BadRequest(new { message = "Invalid order_id." });
 
-        var subscriptionCheckout = await _db.VendorSubscriptionCheckouts
+        var vendorSubscriptionCheckout = await _db.VendorSubscriptionCheckouts
             .FirstOrDefaultAsync(c => c.Id == orderId, cancellationToken);
-        if (subscriptionCheckout is not null)
+        if (vendorSubscriptionCheckout is not null)
         {
             if (!IsWebhookSignatureValid(request))
                 return Unauthorized(new { message = "Invalid webhook signature." });
 
-            return await HandleVendorSubscriptionWebhook(subscriptionCheckout, request, cancellationToken);
+            return await HandleVendorSubscriptionWebhook(vendorSubscriptionCheckout, request, cancellationToken);
+        }
+
+        var plannerSubscriptionCheckout = await _db.PlannerSubscriptionCheckouts
+            .FirstOrDefaultAsync(c => c.Id == orderId, cancellationToken);
+        if (plannerSubscriptionCheckout is not null)
+        {
+            if (!IsWebhookSignatureValid(request))
+                return Unauthorized(new { message = "Invalid webhook signature." });
+
+            return await HandlePlannerSubscriptionWebhook(plannerSubscriptionCheckout, request, cancellationToken);
         }
 
         var webhookResult = await _paymentGateway.ProcessPayHereWebhookAsync(
@@ -142,9 +223,15 @@ public class PaymentsController : ControllerBase
         if (booking is null)
             return NotFound();
 
-        var hasEventAccess = booking.BookedById == userId || await _db.EventOrganizers
-            .AnyAsync(o => o.EventId == booking.EventId && o.UserId == userId, cancellationToken);
-        if (!hasEventAccess)
+        var isAdmin = User.IsInRole("admin");
+        var hasEventAccess = booking.BookedById == userId
+            || await _db.EventOrganizers.AnyAsync(
+                o => o.EventId == booking.EventId && o.UserId == userId,
+                cancellationToken)
+            || await _db.PlannerClientEvents.AnyAsync(
+                e => e.EventId == booking.EventId && e.PlannerId == userId,
+                cancellationToken);
+        if (!isAdmin && !hasEventAccess)
             return Forbid();
 
         var tx = await _db.BookingPaymentTransactions
@@ -216,6 +303,94 @@ public class PaymentsController : ControllerBase
         return Ok(new { message = "Vendor subscription payment failed." });
     }
 
+    private async Task<IActionResult> HandlePlannerSubscriptionWebhook(
+        PlannerSubscriptionCheckout checkout,
+        PayHereWebhookRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (checkout.Status == "Paid")
+            return Ok(new { message = "Planner subscription payment already processed." });
+
+        if (request.status_code == "2")
+        {
+            checkout.Status = "Paid";
+            checkout.PaidAt = DateTime.UtcNow;
+
+            var activeSubs = await _db.PlannerSubscriptions
+                .Where(s => s.PlannerId == checkout.PlannerId && s.Status == SubscriptionStatus.Active)
+                .ToListAsync(cancellationToken);
+
+            foreach (var sub in activeSubs)
+            {
+                sub.Status = SubscriptionStatus.Cancelled;
+                sub.EndsAt = DateTime.UtcNow;
+            }
+
+            var maxConcurrentEvents = checkout.Tier == SubscriptionPlanTier.PlannerPro ? 10 : 1;
+
+            var periodStart = DateTime.UtcNow;
+            await _db.PlannerSubscriptions.AddAsync(new PlannerSubscription
+            {
+                Id = Guid.NewGuid(),
+                PlannerId = checkout.PlannerId,
+                Tier = checkout.Tier,
+                Status = SubscriptionStatus.Active,
+                MonthlyFee = checkout.Amount,
+                MaxConcurrentEvents = maxConcurrentEvents,
+                StartsAt = periodStart,
+                EndsAt = checkout.Tier == SubscriptionPlanTier.PlannerPro
+                    ? periodStart.AddMonths(1)
+                    : null,
+                CreatedAt = periodStart,
+            }, cancellationToken);
+
+            await UpsertPlannerBillingProfileAsync(
+                checkout.PlannerId,
+                request,
+                cancellationToken);
+
+            await _db.SaveChangesAsync(cancellationToken);
+            return Ok(new { message = "Planner subscription payment processed." });
+        }
+
+        checkout.Status = "Failed";
+        await _db.SaveChangesAsync(cancellationToken);
+        return Ok(new { message = "Planner subscription payment failed." });
+    }
+
+    private async Task UpsertPlannerBillingProfileAsync(
+        string plannerId,
+        PayHereWebhookRequest request,
+        CancellationToken cancellationToken)
+    {
+        var profile = await _db.PlannerBillingProfiles
+            .FirstOrDefaultAsync(p => p.PlannerId == plannerId, cancellationToken);
+
+        if (profile is null)
+        {
+            profile = new PlannerBillingProfile { PlannerId = plannerId };
+            await _db.PlannerBillingProfiles.AddAsync(profile, cancellationToken);
+        }
+
+        profile.PayHerePaymentMethod = request.method;
+        profile.CardBrand = InferCardBrand(request.method);
+        profile.CardholderName = string.IsNullOrWhiteSpace(request.card_holder_name)
+            ? profile.CardholderName
+            : request.card_holder_name.Trim();
+
+        var last4 = PayHereCardMetadataHelper.ExtractLast4(request.card_no);
+        if (!string.IsNullOrWhiteSpace(last4))
+            profile.Last4 = last4;
+
+        var (month, year) = PayHereCardMetadataHelper.ParseCardExpiry(request.card_expiry);
+        if (month.HasValue)
+            profile.ExpiryMonth = month;
+        if (year.HasValue)
+            profile.ExpiryYear = year;
+
+        profile.UpdatedAt = DateTime.UtcNow;
+    }
+
     private static string? InferCardBrand(string? method)
     {
         if (string.IsNullOrWhiteSpace(method)) return null;
@@ -242,6 +417,8 @@ public class PaymentsController : ControllerBase
     }
 }
 
+public record PlannerSubscriptionCheckoutRequest(SubscriptionPlanTier Tier, decimal MonthlyFee);
+
 public record PayHereWebhookRequest(
     string merchant_id,
     string order_id,
@@ -250,5 +427,8 @@ public record PayHereWebhookRequest(
     string payhere_currency,
     string status_code,
     string md5sig,
-    string method
+    string method,
+    string? card_holder_name = null,
+    string? card_no = null,
+    string? card_expiry = null
 );

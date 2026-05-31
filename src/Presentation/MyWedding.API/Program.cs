@@ -24,6 +24,7 @@ using MyWedding.Vendors.Application;
 using MyWedding.Collaboration.Application;
 using MyWedding.API.Features.Planner;
 using MyWedding.API.Middleware;
+using MyWedding.API.Workers;
 using MyWedding.SharedKernel.Behaviors;
 using MyWedding.SharedKernel.Interfaces;
 using MyWedding.Infrastructure.Persistence.Repositories;
@@ -88,6 +89,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentPlannerAccessor, CurrentPlannerAccessor>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IPlannerSubscriptionGate, PlannerSubscriptionGate>();
+builder.Services.AddHostedService<SubscriptionExpiryWorker>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
 // --- External integrations (SMTP, OpenAI, PayHere) — see docs/REAL_API_SETUP.md ---
@@ -141,6 +143,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors(MyAllowSpecificOrigins);
 app.UseAuthentication();
+app.UseMiddleware<PlannerSubscriptionLockoutMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<CollaborationHub>("/hubs/collaboration");
@@ -177,18 +180,16 @@ public class FirebaseAuthenticationHandler : AuthenticationHandler<Authenticatio
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!Request.Headers.ContainsKey("Authorization"))
+        // SignalR negotiate / SSE / WebSocket pass the Firebase token as access_token on the query string.
+        var token = ExtractBearerToken(Request.Headers.Authorization.ToString());
+        if (string.IsNullOrEmpty(token) && Request.Query.TryGetValue("access_token", out var queryToken))
+            token = queryToken.ToString();
+
+        if (string.IsNullOrEmpty(token))
             return AuthenticateResult.NoResult();
-
-        string authHeader = Request.Headers["Authorization"]!;
-        if (!authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-            return AuthenticateResult.Fail("Invalid Authorization Header");
-
-        string token = authHeader.Substring("Bearer ".Length).Trim();
 
         try
         {
-            Console.WriteLine("🔑 Custom Auth: Verifying Firebase token...");
             var firebaseToken = await FirebaseAdmin.Auth.FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(token);
             
             var claims = new List<System.Security.Claims.Claim>
@@ -210,13 +211,24 @@ public class FirebaseAuthenticationHandler : AuthenticationHandler<Authenticatio
             var principal = new System.Security.Claims.ClaimsPrincipal(identity);
             var ticket = new AuthenticationTicket(principal, Scheme.Name);
 
-            Console.WriteLine("✅ Custom Auth: Token Validated Successfully");
             return AuthenticateResult.Success(ticket);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Custom Auth Failed: {ex.Message}");
+            Logger.LogWarning(ex, "Firebase token validation failed.");
             return AuthenticateResult.Fail(ex);
         }
+    }
+
+    private static string? ExtractBearerToken(string? authorizationHeader)
+    {
+        if (string.IsNullOrWhiteSpace(authorizationHeader))
+            return null;
+
+        if (!authorizationHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var token = authorizationHeader["Bearer ".Length..].Trim();
+        return string.IsNullOrEmpty(token) ? null : token;
     }
 }

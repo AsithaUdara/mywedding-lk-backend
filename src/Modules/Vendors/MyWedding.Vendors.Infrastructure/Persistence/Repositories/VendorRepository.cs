@@ -35,6 +35,7 @@ namespace MyWedding.Vendors.Infrastructure.Persistence.Repositories
             // Implementation...
             IQueryable<Vendor> query = _context.Vendors
                 .Include(v => v.User)
+                .Include(v => v.PrimaryCategory)
                 .Include(v => v.Services)
                     .ThenInclude(s => s.Category)
                 .Include(v => v.Reviews)
@@ -51,6 +52,27 @@ namespace MyWedding.Vendors.Infrastructure.Persistence.Repositories
                 .Include(v => v.PrimaryCategory)
                 .AsNoTracking()
                 .OrderBy(v => v.BusinessName)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<IEnumerable<Vendor>> GetAdminVendorsAsync(
+            MyWedding.Domain.Enums.VerificationStatus? status = null,
+            CancellationToken cancellationToken = default)
+        {
+            IQueryable<Vendor> query = _context.Vendors
+                .Include(v => v.User)
+                .Include(v => v.PrimaryCategory)
+                .Include(v => v.Services)
+                .AsNoTracking();
+
+            if (status.HasValue)
+            {
+                query = query.Where(v => v.VerificationStatus == status.Value);
+            }
+
+            return await query
+                .OrderByDescending(v => v.User != null ? v.User.CreatedAt : DateTime.MinValue)
+                .ThenBy(v => v.BusinessName)
                 .ToListAsync(cancellationToken);
         }
 

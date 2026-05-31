@@ -9,6 +9,7 @@ public class CreateVendorShortlistCommandHandler : IRequestHandler<CreateVendorS
     private readonly IVendorShortlistRepository _shortlistRepository;
     private readonly IWeddingEventRepository _eventRepository;
     private readonly IVendorServiceRepository _serviceRepository;
+    private readonly IVendorBlockedDateRepository _blockedDateRepository;
     private readonly IEventOrganizerRepository _organizerRepository;
     private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
@@ -17,6 +18,7 @@ public class CreateVendorShortlistCommandHandler : IRequestHandler<CreateVendorS
         IVendorShortlistRepository shortlistRepository,
         IWeddingEventRepository eventRepository,
         IVendorServiceRepository serviceRepository,
+        IVendorBlockedDateRepository blockedDateRepository,
         IEventOrganizerRepository organizerRepository,
         INotificationService notificationService,
         IUnitOfWork unitOfWork)
@@ -24,6 +26,7 @@ public class CreateVendorShortlistCommandHandler : IRequestHandler<CreateVendorS
         _shortlistRepository = shortlistRepository;
         _eventRepository = eventRepository;
         _serviceRepository = serviceRepository;
+        _blockedDateRepository = blockedDateRepository;
         _organizerRepository = organizerRepository;
         _notificationService = notificationService;
         _unitOfWork = unitOfWork;
@@ -66,6 +69,23 @@ public class CreateVendorShortlistCommandHandler : IRequestHandler<CreateVendorS
                 throw new ValidationException(new Dictionary<string, string[]>
                 {
                     ["vendorServiceId"] = [$"Service {item.VendorServiceId} is not available."]
+                });
+            }
+
+            var weddingDate = weddingEvent.EventDate.Date;
+            var blocked = await _blockedDateRepository.GetByVendorAndDateAsync(
+                service.VendorId,
+                weddingDate,
+                cancellationToken);
+
+            if (blocked is not null)
+            {
+                throw new ValidationException(new Dictionary<string, string[]>
+                {
+                    ["vendorServiceId"] =
+                    [
+                        $"Vendor is unavailable on the wedding date ({weddingDate:yyyy-MM-dd})."
+                    ]
                 });
             }
 

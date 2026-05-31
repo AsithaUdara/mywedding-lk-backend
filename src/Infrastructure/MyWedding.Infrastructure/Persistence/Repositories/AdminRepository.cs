@@ -99,6 +99,25 @@ namespace MyWedding.Infrastructure.Persistence.Repositories
                 .AsNoTracking()
                 .CountAsync(v => v.VerificationStatus == VerificationStatus.Verified, cancellationToken);
 
+            var usersWithEvents = await _context.WeddingEvents
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Select(e => e.CreatedById)
+                .Distinct()
+                .CountAsync(cancellationToken);
+
+            var usersWithBookings = await _context.VendorBookings
+                .AsNoTracking()
+                .Select(b => b.BookedById)
+                .Distinct()
+                .CountAsync(cancellationToken);
+
+            var eventsWithBookings = await _context.VendorBookings
+                .AsNoTracking()
+                .Select(b => b.EventId)
+                .Distinct()
+                .CountAsync(cancellationToken);
+
             var plannerGrowth = new List<MonthlyCountPoint>();
             for (var i = 5; i >= 0; i--)
             {
@@ -128,6 +147,9 @@ namespace MyWedding.Infrastructure.Persistence.Repositories
                 TotalUsers = await GetTotalUsersAsync(cancellationToken),
                 TotalEvents = await GetTotalEventsAsync(cancellationToken),
                 TotalBookings = await GetTotalBookingsAsync(cancellationToken),
+                UsersWithEvents = usersWithEvents,
+                UsersWithBookings = usersWithBookings,
+                EventsWithBookings = eventsWithBookings,
                 PlannerGrowthByMonth = plannerGrowth
             };
         }

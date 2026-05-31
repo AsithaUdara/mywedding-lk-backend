@@ -41,6 +41,15 @@ public class EventsController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
+        // B2B2C: couples join planner-managed events via invitation, not self-service creation.
+        if (!User.IsInRole("admin"))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                message = "Events are created by your wedding planner. Accept your invitation email to access your celebration."
+            });
+        }
+
         var command = new CreateEventCommand
         {
             EventName = request.EventName,
@@ -61,7 +70,11 @@ public class EventsController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetEventById(Guid id)
     {
-        var query = new GetEventByIdQuery { EventId = id };
+        var userId = GetUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var query = new GetEventByIdQuery { EventId = id, UserId = userId };
         var result = await _mediator.Send(query);
 
         return result is not null ? Ok(result) : NotFound();

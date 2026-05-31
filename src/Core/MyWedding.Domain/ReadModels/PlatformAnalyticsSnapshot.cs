@@ -15,6 +15,12 @@ namespace MyWedding.Domain.ReadModels
         public int TotalUsers { get; init; }
         public int TotalEvents { get; init; }
         public int TotalBookings { get; init; }
+        /// <summary>Distinct users who created at least one wedding event.</summary>
+        public int UsersWithEvents { get; init; }
+        /// <summary>Distinct users who made at least one vendor booking.</summary>
+        public int UsersWithBookings { get; init; }
+        /// <summary>Distinct events with at least one vendor booking.</summary>
+        public int EventsWithBookings { get; init; }
         public IReadOnlyList<MonthlyCountPoint> PlannerGrowthByMonth { get; init; } = [];
     }
 

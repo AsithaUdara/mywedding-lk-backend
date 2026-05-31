@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Enums;
+using MyWedding.Infrastructure.Payments;
 using MyWedding.Infrastructure.Persistence;
 using MyWedding.Vendors.Application.Features.Dashboard.Queries.GetVendorAnalytics;
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -34,6 +36,17 @@ namespace MyWedding.API.Controllers
 
         private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
+        private async Task<VerificationStatus?> GetVendorVerificationStatusAsync(
+            string userId,
+            CancellationToken cancellationToken = default)
+        {
+            return await _db.Vendors
+                .AsNoTracking()
+                .Where(v => v.UserId == userId)
+                .Select(v => (VerificationStatus?)v.VerificationStatus)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
         /// <summary>
         /// Retrieves all services owned by the current authenticated vendor.
         /// </summary>
@@ -53,9 +66,12 @@ namespace MyWedding.API.Controllers
         /// Adds a new service to the current vendor's profile.
         /// </summary>
         /// <param name="command">The service details.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The ID of the created service.</returns>
         [HttpPost("services")]
-        public async Task<IActionResult> AddService([FromBody] AddServiceCommand command)
+        public async Task<IActionResult> AddService(
+            [FromBody] AddServiceCommand command,
+            CancellationToken cancellationToken)
         {
             var userId = GetUserId();
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
@@ -67,7 +83,13 @@ namespace MyWedding.API.Controllers
                 command.CategoryId = Guid.Parse("66666666-6666-6666-6666-666666666666"); // Other
             }
 
-            var result = await _mediator.Send(command);
+            var verificationStatus = await GetVendorVerificationStatusAsync(userId, cancellationToken);
+            if (verificationStatus != VerificationStatus.Verified)
+            {
+                command.IsActive = false;
+            }
+
+            var result = await _mediator.Send(command, cancellationToken);
             return Ok(new { id = result });
         }
 
@@ -76,9 +98,13 @@ namespace MyWedding.API.Controllers
         /// </summary>
         /// <param name="id">The ID of the service to update.</param>
         /// <param name="command">The updated service details.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>A success status or 404 if not found.</returns>
         [HttpPut("services/{id}")]
-        public async Task<IActionResult> UpdateService(Guid id, [FromBody] UpdateServiceCommand command)
+        public async Task<IActionResult> UpdateService(
+            Guid id,
+            [FromBody] UpdateServiceCommand command,
+            CancellationToken cancellationToken)
         {
             var userId = GetUserId();
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
@@ -88,8 +114,20 @@ namespace MyWedding.API.Controllers
                 command.CategoryId = Guid.Parse("66666666-6666-6666-6666-666666666666"); // Other
             }
 
+            if (command.IsActive)
+            {
+                var verificationStatus = await GetVendorVerificationStatusAsync(userId, cancellationToken);
+                if (verificationStatus != VerificationStatus.Verified)
+                {
+                    return StatusCode(403, new
+                    {
+                        message = "Your account must be verified before publishing listings to the marketplace.",
+                    });
+                }
+            }
+
             command.Id = id;
-            var result = await _mediator.Send(command);
+            var result = await _mediator.Send(command, cancellationToken);
             return result ? Ok() : NotFound();
         }
 
@@ -321,24 +359,29 @@ namespace MyWedding.API.Controllers
             var cancelUrl = _configuration["PayHere:VendorSubscriptionCancelUrl"]
                 ?? $"{_configuration["Frontend:BaseUrl"]}/vendor/dashboard/settings?payment=cancelled";
 
+            var orderId = checkout.Id.ToString();
+            var currency = "LKR";
+            var merchantSecret = _configuration["PayHere:MerchantSecret"] ?? string.Empty;
+            var email = User.FindFirstValue(ClaimTypes.Email) ?? "vendor@mywedding.lk";
+            var checkoutPayload = PayHereCheckoutFormBuilder.Build(
+                sandboxUrl,
+                merchantId,
+                merchantSecret,
+                orderId,
+                request.MonthlyFee,
+                currency,
+                $"Vendor {request.Tier} Plan",
+                returnUrl,
+                cancelUrl,
+                notifyUrl,
+                email,
+                firstName: "Vendor",
+                lastName: "Subscription");
+
             return Ok(new
             {
                 checkoutId = checkout.Id,
-                checkout = new
-                {
-                    checkoutUrl = sandboxUrl,
-                    merchant_id = merchantId,
-                    return_url = returnUrl,
-                    cancel_url = cancelUrl,
-                    notify_url = notifyUrl,
-                    order_id = checkout.Id,
-                    items = $"Vendor {request.Tier} Plan",
-                    amount = request.MonthlyFee,
-                    currency = "LKR",
-                    first_name = "Vendor",
-                    last_name = "Subscription",
-                    email = User.FindFirstValue(ClaimTypes.Email) ?? "vendor@mywedding.lk",
-                },
+                checkout = checkoutPayload,
             });
         }
     }

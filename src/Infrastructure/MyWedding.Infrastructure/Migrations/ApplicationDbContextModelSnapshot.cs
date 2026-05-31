@@ -489,6 +489,37 @@ namespace MyWedding.Infrastructure.Migrations
                     b.ToTable("MessageReadStatuses");
                 });
 
+            modelBuilder.Entity("MyWedding.Domain.Entities.PlannerBillingProfile", b =>
+                {
+                    b.Property<string>("PlannerId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CardBrand")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CardholderName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte?>("ExpiryMonth")
+                        .HasColumnType("tinyint");
+
+                    b.Property<short?>("ExpiryYear")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Last4")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PayHerePaymentMethod")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("PlannerId");
+
+                    b.ToTable("PlannerBillingProfiles");
+                });
+
             modelBuilder.Entity("MyWedding.Domain.Entities.PlannerClientEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -563,6 +594,39 @@ namespace MyWedding.Infrastructure.Migrations
                     b.HasIndex("PlannerId");
 
                     b.ToTable("PlannerSubscriptions");
+                });
+
+            modelBuilder.Entity("MyWedding.Domain.Entities.PlannerSubscriptionCheckout", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PlannerId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Tier")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlannerId");
+
+                    b.ToTable("PlannerSubscriptionCheckouts");
                 });
 
             modelBuilder.Entity("MyWedding.Domain.Entities.User", b =>
@@ -1125,6 +1189,9 @@ namespace MyWedding.Infrastructure.Migrations
                     b.Property<string>("UserId")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("AgencyLogoUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("BusinessDescription")
                         .HasColumnType("nvarchar(max)");
 
@@ -1376,6 +1443,17 @@ namespace MyWedding.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("MyWedding.Domain.Entities.PlannerBillingProfile", b =>
+                {
+                    b.HasOne("MyWedding.Domain.Entities.WeddingPlanner", "Planner")
+                        .WithOne()
+                        .HasForeignKey("MyWedding.Domain.Entities.PlannerBillingProfile", "PlannerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Planner");
+                });
+
             modelBuilder.Entity("MyWedding.Domain.Entities.PlannerClientEvent", b =>
                 {
                     b.HasOne("MyWedding.Domain.Entities.User", "ClientUser")
@@ -1407,6 +1485,17 @@ namespace MyWedding.Infrastructure.Migrations
                 {
                     b.HasOne("MyWedding.Domain.Entities.WeddingPlanner", "Planner")
                         .WithMany("Subscriptions")
+                        .HasForeignKey("PlannerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Planner");
+                });
+
+            modelBuilder.Entity("MyWedding.Domain.Entities.PlannerSubscriptionCheckout", b =>
+                {
+                    b.HasOne("MyWedding.Domain.Entities.WeddingPlanner", "Planner")
+                        .WithMany()
                         .HasForeignKey("PlannerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

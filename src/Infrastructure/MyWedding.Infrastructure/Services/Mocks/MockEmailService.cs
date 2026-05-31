@@ -25,7 +25,7 @@ public class MockEmailService : IEmailService
         cancellationToken.ThrowIfCancellationRequested();
 
         // Dev-only: configure Smtp:* user secrets for real delivery (see docs/REAL_API_SETUP.md).
-        var acceptUrl = $"{_frontendBaseUrl}/invitations/accept?token={Uri.EscapeDataString(message.InvitationToken)}";
+        var acceptUrl = $"{_frontendBaseUrl}/invite/accept?token={Uri.EscapeDataString(message.InvitationToken)}";
         var body = $"""
             You have been invited to join "{message.EventName}" on MyWedding.lk as {message.Role} ({message.PermissionLevel} access).
 
@@ -59,6 +59,27 @@ public class MockEmailService : IEmailService
             "Vendor booking accepted",
             message.ToEmail,
             $"{message.VendorBusinessName} accepted your booking",
+            body);
+        return Task.CompletedTask;
+    }
+
+    public Task SendVendorRejectionAsync(
+        string toEmail,
+        string businessName,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var body = $"""
+            Thank you for applying to list "{businessName}" on MyWedding.lk.
+
+            After review, we are unable to approve your vendor profile at this time.
+            """;
+
+        LogSimulatedEmail(
+            "Vendor KYB rejection",
+            toEmail,
+            "Update on your MyWedding.lk vendor application",
             body);
         return Task.CompletedTask;
     }

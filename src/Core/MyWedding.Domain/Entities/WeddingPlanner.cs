@@ -13,6 +13,8 @@ namespace MyWedding.Domain.Entities
         public string? BusinessDescription { get; set; }
         public string? ContactPhone { get; set; }
         public string? City { get; set; }
+        /// <summary>Cloudinary URL for agency white-label logo (Planner Pro).</summary>
+        public string? AgencyLogoUrl { get; set; }
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; }

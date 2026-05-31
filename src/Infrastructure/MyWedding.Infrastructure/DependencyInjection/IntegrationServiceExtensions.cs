@@ -16,6 +16,7 @@ public static class IntegrationServiceExtensions
         IConfiguration configuration)
     {
         RegisterEmailService(services, configuration);
+        RegisterMediaServices(services);
         return services;
     }
 
@@ -25,14 +26,28 @@ public static class IntegrationServiceExtensions
         var allowMockEmail = configuration.GetValue("Integrations:AllowMockEmail", false);
         var openAi = !string.IsNullOrWhiteSpace(configuration["OpenAI:ApiKey"]);
         var payHere = !string.IsNullOrWhiteSpace(configuration["PayHere:MerchantSecret"]);
+        var cloudinary = IsCloudinaryConfigured(configuration);
 
         Console.WriteLine();
         Console.WriteLine("=== MyWedding.lk integration status ===");
         Console.WriteLine($"  Email (SMTP):      {(smtp ? "LIVE" : allowMockEmail ? "MOCK (dev)" : "MISSING — set Smtp:Password")}");
         Console.WriteLine($"  OpenAI:            {(openAi ? "LIVE" : "simulated fallback")}");
         Console.WriteLine($"  PayHere:           {(payHere ? "LIVE (signed checkout)" : "sandbox, no hash")}");
+        Console.WriteLine($"  Cloudinary:        {(cloudinary ? "LIVE (PDF + assets)" : "MISSING — set Cloudinary:* secrets")}");
         Console.WriteLine("  See docs/REAL_API_SETUP.md");
         Console.WriteLine();
+    }
+
+    private static bool IsCloudinaryConfigured(IConfiguration configuration) =>
+        !string.IsNullOrWhiteSpace(configuration["Cloudinary:CloudName"])
+        && !string.IsNullOrWhiteSpace(configuration["Cloudinary:ApiKey"])
+        && !string.IsNullOrWhiteSpace(configuration["Cloudinary:ApiSecret"]);
+
+    private static void RegisterMediaServices(IServiceCollection services)
+    {
+        services.AddSingleton<IQuotePdfGenerator, InquiryQuotePdfGenerator>();
+        services.AddSingleton<ICloudinaryMediaStorage, CloudinaryMediaStorage>();
+        services.AddScoped<IWeddingPlannerProfileReader, WeddingPlannerProfileReader>();
     }
 
     private static bool IsSmtpConfigured(IConfiguration configuration) =>

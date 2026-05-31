@@ -42,43 +42,84 @@ public class GenerateTaskTemplateCommandHandler : IRequestHandler<GenerateTaskTe
 
         var weddingDate = weddingEvent.EventDate.Date;
         var template = WeddingTaskTemplate.Entries;
-        var taskIds = new Guid[template.Count];
         var now = DateTime.UtcNow;
+        var daysUntilWedding = Math.Max(1, (weddingDate - now.Date).Days);
 
+        var includedIndices = new List<int>();
         for (var i = 0; i < template.Count; i++)
         {
-            var entry = template[i];
-            taskIds[i] = Guid.NewGuid();
+            if (WeddingTaskScheduleCalculator.ShouldIncludeTemplateEntry(template[i].DueDaysBeforeWedding, daysUntilWedding))
+            {
+                includedIndices.Add(i);
+            }
+        }
+
+        if (!includedIndices.Contains(template.Count - 1))
+        {
+            includedIndices.Add(template.Count - 1);
+            includedIndices.Sort();
+        }
+
+        var indexToTask = new Dictionary<int, EventTask>();
+        var tasksInOrder = new List<EventTask>();
+
+        foreach (var index in includedIndices)
+        {
+            var entry = template[index];
+            var window = WeddingTaskScheduleCalculator.ComputeScheduleDates(
+                weddingDate,
+                now,
+                entry.StartDaysBeforeWedding,
+                entry.DueDaysBeforeWedding);
+
             var task = new EventTask
             {
-                Id = taskIds[i],
+                Id = Guid.NewGuid(),
                 EventId = request.EventId,
                 Title = entry.Title,
                 Status = DomainTaskStatus.ToDo,
-                StartDate = weddingDate.AddDays(-entry.StartDaysBeforeWedding),
-                DueDate = weddingDate.AddDays(-entry.DueDaysBeforeWedding),
+                StartDate = window.StartDate,
+                DueDate = window.DueDate,
                 CreatedAt = now,
                 UpdatedAt = now
             };
+
+            indexToTask[index] = task;
+            tasksInOrder.Add(task);
             await _taskRepository.AddAsync(task, cancellationToken);
         }
 
-        for (var i = 0; i < template.Count; i++)
+        foreach (var index in includedIndices)
         {
-            var dependsOnIndex = template[i].DependsOnTemplateIndex;
+            var dependsOnIndex = template[index].DependsOnTemplateIndex;
             if (dependsOnIndex is null)
+            {
                 continue;
+            }
 
-            var task = await _taskRepository.GetByIdAsync(taskIds[i], cancellationToken);
-            if (task is null)
+            var task = indexToTask[index];
+            if (indexToTask.TryGetValue(dependsOnIndex.Value, out var dependency))
+            {
+                task.DependsOnTaskId = dependency.Id;
                 continue;
+            }
 
-            task.DependsOnTaskId = taskIds[dependsOnIndex.Value];
+            var fallbackIndex = includedIndices.LastOrDefault(i => i <= dependsOnIndex.Value);
+            if (indexToTask.TryGetValue(fallbackIndex, out var fallbackDep))
+            {
+                task.DependsOnTaskId = fallbackDep.Id;
+            }
+        }
+
+        var orderedTemplateTasks = includedIndices.Select(i => indexToTask[i]).ToList();
+        WeddingTaskScheduleCalculator.EnforceDependencyOrderByGraph(orderedTemplateTasks, weddingDate, orderedTemplateTasks);
+
+        foreach (var task in orderedTemplateTasks)
+        {
             task.UpdatedAt = now;
-            _taskRepository.Update(task);
         }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return template.Count;
+        return includedIndices.Count;
     }
 }

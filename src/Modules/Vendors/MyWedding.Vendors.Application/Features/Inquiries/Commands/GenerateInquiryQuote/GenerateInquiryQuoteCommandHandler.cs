@@ -2,97 +2,159 @@ using MediatR;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Interfaces;
 using MyWedding.SharedKernel.Exceptions;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+using MyWedding.SharedKernel.Interfaces;
 
-namespace MyWedding.Vendors.Application.Features.Inquiries.Commands.GenerateInquiryQuote
+namespace MyWedding.Vendors.Application.Features.Inquiries.Commands.GenerateInquiryQuote;
+
+public class GenerateInquiryQuoteCommandHandler : IRequestHandler<GenerateInquiryQuoteCommand, InquiryQuoteResultDto>
 {
-    public class GenerateInquiryQuoteCommandHandler : IRequestHandler<GenerateInquiryQuoteCommand, InquiryQuoteResultDto>
+    private readonly IVendorInquiryRepository _inquiryRepository;
+    private readonly IVendorInquiryQuoteRepository _quoteRepository;
+    private readonly IVendorRepository _vendorRepository;
+    private readonly IWeddingEventRepository _eventRepository;
+    private readonly IWeddingPlannerProfileReader _plannerProfileReader;
+    private readonly IUserRepository _userRepository;
+    private readonly IQuotePdfGenerator _quotePdfGenerator;
+    private readonly ICloudinaryMediaStorage _cloudinaryMediaStorage;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public GenerateInquiryQuoteCommandHandler(
+        IVendorInquiryRepository inquiryRepository,
+        IVendorInquiryQuoteRepository quoteRepository,
+        IVendorRepository vendorRepository,
+        IWeddingEventRepository eventRepository,
+        IWeddingPlannerProfileReader plannerProfileReader,
+        IUserRepository userRepository,
+        IQuotePdfGenerator quotePdfGenerator,
+        ICloudinaryMediaStorage cloudinaryMediaStorage,
+        IUnitOfWork unitOfWork)
     {
-        private readonly IVendorInquiryRepository _inquiryRepository;
-        private readonly IVendorInquiryQuoteRepository _quoteRepository;
-        private readonly IVendorRepository _vendorRepository;
-        private readonly IUnitOfWork _unitOfWork;
+        _inquiryRepository = inquiryRepository;
+        _quoteRepository = quoteRepository;
+        _vendorRepository = vendorRepository;
+        _eventRepository = eventRepository;
+        _plannerProfileReader = plannerProfileReader;
+        _userRepository = userRepository;
+        _quotePdfGenerator = quotePdfGenerator;
+        _cloudinaryMediaStorage = cloudinaryMediaStorage;
+        _unitOfWork = unitOfWork;
+    }
 
-        public GenerateInquiryQuoteCommandHandler(
-            IVendorInquiryRepository inquiryRepository,
-            IVendorInquiryQuoteRepository quoteRepository,
-            IVendorRepository vendorRepository,
-            IUnitOfWork unitOfWork)
+    public async Task<InquiryQuoteResultDto> Handle(
+        GenerateInquiryQuoteCommand request,
+        CancellationToken cancellationToken)
+    {
+        var inquiry = await _inquiryRepository.GetByIdForVendorAsync(
+            request.InquiryId,
+            request.VendorId,
+            cancellationToken);
+
+        if (inquiry is null)
         {
-            _inquiryRepository = inquiryRepository;
-            _quoteRepository = quoteRepository;
-            _vendorRepository = vendorRepository;
-            _unitOfWork = unitOfWork;
+            throw new NotFoundException($"Inquiry '{request.InquiryId}' was not found.");
         }
 
-        public async Task<InquiryQuoteResultDto> Handle(
-            GenerateInquiryQuoteCommand request,
-            CancellationToken cancellationToken)
+        var vendor = await _vendorRepository.GetByIdAsync(request.VendorId, cancellationToken);
+        var businessName = vendor?.BusinessName ?? "Our studio";
+        var amount = request.ProposedAmount ?? 385_000m;
+        var reference = $"Q-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
+
+        var (plannerDisplayName, plannerBusinessName) = await ResolvePlannerDetailsAsync(
+            inquiry,
+            cancellationToken);
+
+        string? eventName = null;
+        if (inquiry.EventId.HasValue)
         {
-            var inquiry = await _inquiryRepository.GetByIdForVendorAsync(
-                request.InquiryId,
-                request.VendorId,
-                cancellationToken);
-
-            if (inquiry is null)
-            {
-                throw new NotFoundException($"Inquiry '{request.InquiryId}' was not found.");
-            }
-
-            var vendor = await _vendorRepository.GetByIdAsync(request.VendorId, cancellationToken);
-            var businessName = vendor?.BusinessName ?? "Our studio";
-            var amount = request.ProposedAmount ?? 385_000m;
-            var reference = $"Q-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
-            var pdfKey = $"quotes/{request.VendorId}/{reference}.pdf";
-
-            var body = $"""
-                Official Quote — {reference}
-                Vendor: {businessName}
-                Amount: LKR {amount:N0}
-                Valid for 14 days from issue date.
-
-                This document is generated by MyWedding.lk for {inquiry.SenderEmail}.
-                """;
-
-            var quote = new VendorInquiryQuote
-            {
-                Id = Guid.NewGuid(),
-                InquiryId = inquiry.Id,
-                VendorId = request.VendorId,
-                QuoteReference = reference,
-                Amount = amount,
-                Currency = "LKR",
-                Body = body,
-                PdfStorageKey = pdfKey,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await _quoteRepository.AddAsync(quote, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            var eventLabel = inquiry.Subject ?? "your event";
-            var suggestedReply = $"""
-                Dear {inquiry.SenderEmail.Split('@')[0]},
-
-                Thank you for your inquiry. Based on your requirements, we propose our package at LKR {amount:N0} (Quote ref: {reference}).
-
-                Attached: official quote PDF ({pdfKey}).
-
-                Warm regards,
-                {businessName}
-                """;
-
-            return new InquiryQuoteResultDto
-            {
-                QuoteId = quote.Id,
-                QuoteReference = reference,
-                Amount = amount,
-                Currency = "LKR",
-                SuggestedReply = suggestedReply,
-                PdfStorageKey = pdfKey
-            };
+            var weddingEvent = await _eventRepository.GetByIdAsync(inquiry.EventId.Value, cancellationToken);
+            eventName = weddingEvent?.EventName;
         }
+
+        var body = $"""
+            Official Quote — {reference}
+            Vendor: {businessName}
+            Planning partner: {plannerDisplayName} ({plannerBusinessName})
+            Amount: LKR {amount:N0}
+            Valid for 14 days from issue date.
+
+            This document is generated by MyWedding.lk for {inquiry.SenderEmail}.
+            """;
+
+        var pdfModel = new InquiryQuotePdfModel(
+            reference,
+            businessName,
+            plannerDisplayName,
+            plannerBusinessName,
+            amount,
+            "LKR",
+            inquiry.SenderEmail,
+            eventName,
+            body);
+
+        var pdfBytes = _quotePdfGenerator.Generate(pdfModel);
+        var publicId = reference.Replace("/", "-", StringComparison.Ordinal);
+        var pdfUrl = await _cloudinaryMediaStorage.UploadPdfAsync(
+            pdfBytes,
+            $"mywedding/quotes/{request.VendorId}",
+            publicId,
+            cancellationToken);
+
+        var quote = new VendorInquiryQuote
+        {
+            Id = Guid.NewGuid(),
+            InquiryId = inquiry.Id,
+            VendorId = request.VendorId,
+            QuoteReference = reference,
+            Amount = amount,
+            Currency = "LKR",
+            Body = body,
+            PdfStorageKey = pdfUrl,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _quoteRepository.AddAsync(quote, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var suggestedReply = $"""
+            Dear {inquiry.SenderEmail.Split('@')[0]},
+
+            Thank you for your inquiry. Based on your requirements, we propose our package at LKR {amount:N0} (Quote ref: {reference}).
+
+            Official quote PDF: {pdfUrl}
+
+            Warm regards,
+            {businessName}
+            """;
+
+        return new InquiryQuoteResultDto
+        {
+            QuoteId = quote.Id,
+            QuoteReference = reference,
+            Amount = amount,
+            Currency = "LKR",
+            SuggestedReply = suggestedReply,
+            PdfStorageKey = pdfUrl
+        };
+    }
+
+    private async Task<(string DisplayName, string BusinessName)> ResolvePlannerDetailsAsync(
+        VendorInquiry inquiry,
+        CancellationToken cancellationToken)
+    {
+        var plannerProfile = await _plannerProfileReader.GetByUserIdAsync(inquiry.SenderId, cancellationToken);
+        if (plannerProfile is not null)
+        {
+            return (plannerProfile.DisplayName, plannerProfile.BusinessName);
+        }
+
+        var user = await _userRepository.GetByIdAsync(inquiry.SenderId, cancellationToken);
+        var displayName = user is null
+            ? inquiry.SenderEmail.Split('@')[0]
+            : $"{user.FirstName} {user.LastName}".Trim();
+
+        if (string.IsNullOrWhiteSpace(displayName))
+            displayName = inquiry.SenderEmail;
+
+        return (displayName, "Direct inquiry");
     }
 }

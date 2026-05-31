@@ -69,6 +69,7 @@ global using MyWedding.Tasks.Application.Features.Tasks.Queries.GetTasksByEventI
 global using MyWedding.Tasks.Application.Features.Tasks.Commands.CreateTask;
 global using MyWedding.Tasks.Application.Features.Tasks.Commands.UpdateTaskStatus;
 global using MyWedding.Tasks.Application.Features.Tasks.Commands.UpdateTaskSchedule;
+global using MyWedding.Tasks.Application.Features.Tasks.Commands.RealignEventTaskSchedule;
 global using MyWedding.Vendors.Application.Features.Bookings.Queries.GetVendorBookings;
 global using MyWedding.Vendors.Application.Features.Bookings.Queries.GetEventBookings;
 global using MyWedding.Vendors.Application.Features.Bookings.Commands.UpdateBookingStatus;

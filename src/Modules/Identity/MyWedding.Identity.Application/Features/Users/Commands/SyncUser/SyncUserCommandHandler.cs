@@ -22,9 +22,41 @@ namespace MyWedding.Identity.Application.Features.Users.Commands.SyncUser
             // 1. Check if the user already exists in our database
             var existingUser = await _userRepository.GetByIdAsync(request.FirebaseUid, cancellationToken);
 
-            // 2. If they already exist, do nothing. The sync is complete.
+            // 2. If they already exist, refresh placeholder profile details when possible.
             if (existingUser != null)
             {
+                var updated = false;
+
+                if (!string.IsNullOrWhiteSpace(request.Email) &&
+                    !string.Equals(existingUser.Email, request.Email, StringComparison.OrdinalIgnoreCase))
+                {
+                    existingUser.Email = request.Email;
+                    updated = true;
+                }
+
+                var hasIncomingName = !string.IsNullOrWhiteSpace(request.FirstName) &&
+                    !(string.Equals(request.FirstName, "User", StringComparison.OrdinalIgnoreCase) &&
+                      string.IsNullOrWhiteSpace(request.LastName));
+                var hasPlaceholderName = string.IsNullOrWhiteSpace(existingUser.FirstName) ||
+                    (string.Equals(existingUser.FirstName, "User", StringComparison.OrdinalIgnoreCase) &&
+                     string.IsNullOrWhiteSpace(existingUser.LastName));
+
+                if (hasIncomingName &&
+                    (hasPlaceholderName ||
+                     !string.Equals(existingUser.FirstName, request.FirstName, StringComparison.OrdinalIgnoreCase) ||
+                     !string.Equals(existingUser.LastName ?? string.Empty, request.LastName ?? string.Empty, StringComparison.OrdinalIgnoreCase)))
+                {
+                    existingUser.FirstName = request.FirstName;
+                    existingUser.LastName = request.LastName ?? string.Empty;
+                    updated = true;
+                }
+
+                if (updated)
+                {
+                    existingUser.UpdatedAt = DateTime.UtcNow;
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                }
+
                 return existingUser.Id;
             }
 

@@ -26,8 +26,18 @@ namespace MyWedding.Vendors.Application.Features.Vendors.Queries.GetVendors
 
             if (!string.IsNullOrEmpty(request.Category))
             {
-                vendors = vendors.Where(v => VendorMediaHelper.ActiveServices(v)
-                    .Any(s => s.Category!.Name.Contains(request.Category, StringComparison.OrdinalIgnoreCase)));
+                vendors = vendors.Where(v =>
+                {
+                    var activeServices = VendorMediaHelper.ActiveServices(v).ToList();
+                    if (activeServices.Count > 0)
+                    {
+                        return activeServices.Any(s =>
+                            s.Category!.Name.Contains(request.Category, StringComparison.OrdinalIgnoreCase));
+                    }
+
+                    return (v.PrimaryCategory?.Name ?? "")
+                        .Contains(request.Category, StringComparison.OrdinalIgnoreCase);
+                });
             }
 
             if (!string.IsNullOrEmpty(request.Location))
@@ -35,20 +45,12 @@ namespace MyWedding.Vendors.Application.Features.Vendors.Queries.GetVendors
                 vendors = vendors.Where(v => (v.City ?? "").Contains(request.Location, StringComparison.OrdinalIgnoreCase));
             }
 
-            return vendors
-                .Select(v =>
+            return vendors.Select(v =>
+            {
+                var activeServices = VendorMediaHelper.ActiveServices(v).ToList();
+
+                if (activeServices.Count == 0)
                 {
-                    var activeServices = VendorMediaHelper.ActiveServices(v).ToList();
-                    if (activeServices.Count == 0)
-                    {
-                        return null;
-                    }
-
-                    var minPrice = activeServices.Min(s => s.BasePrice);
-                    var primaryCategory = activeServices
-                        .OrderBy(s => s.BasePrice)
-                        .FirstOrDefault()?.Category?.Name ?? "Uncategorized";
-
                     return new VendorDto(
                         v.UserId,
                         v.BusinessName,
@@ -59,14 +61,34 @@ namespace MyWedding.Vendors.Application.Features.Vendors.Queries.GetVendors
                         v.VerificationStatus.ToString(),
                         v.AverageRating,
                         v.Reviews.Count,
-                        minPrice,
-                        primaryCategory,
+                        0,
+                        v.PrimaryCategory?.Name ?? "Other",
                         VendorMediaHelper.ResolvePrimaryImageUrl(v, activeServices),
                         VendorMediaHelper.ResolveGalleryUrls(v, activeServices)
                     );
-                })
-                .Where(dto => dto is not null)
-                .Cast<VendorDto>();
+                }
+
+                var minPrice = activeServices.Min(s => s.BasePrice);
+                var primaryCategory = activeServices
+                    .OrderBy(s => s.BasePrice)
+                    .FirstOrDefault()?.Category?.Name ?? "Uncategorized";
+
+                return new VendorDto(
+                    v.UserId,
+                    v.BusinessName,
+                    v.BusinessDescription,
+                    v.WebsiteUrl,
+                    v.ContactPhone,
+                    v.City ?? "N/A",
+                    v.VerificationStatus.ToString(),
+                    v.AverageRating,
+                    v.Reviews.Count,
+                    minPrice,
+                    primaryCategory,
+                    VendorMediaHelper.ResolvePrimaryImageUrl(v, activeServices),
+                    VendorMediaHelper.ResolveGalleryUrls(v, activeServices)
+                );
+            });
         }
     }
 }

@@ -1,36 +1,61 @@
-// File: src/Core/MyWedding.Application/Features/Events/Queries/GetEventById/GetEventByIdQueryHandler.cs
 using MediatR;
+using MyWedding.Domain.Interfaces;
+using MyWedding.SharedKernel.Exceptions;
+using MyWedding.SharedKernel.Interfaces;
 
-using System.Threading;
-using System.Threading.Tasks;
+namespace MyWedding.Events.Application.Features.Events.Queries.GetEventById;
 
-namespace MyWedding.Events.Application.Features.Events.Queries.GetEventById
+public class GetEventByIdQueryHandler : IRequestHandler<GetEventByIdQuery, EventDto?>
 {
-    public class GetEventByIdQueryHandler : IRequestHandler<GetEventByIdQuery, EventDto?>
+    private readonly IWeddingEventRepository _weddingEventRepository;
+    private readonly IEventOrganizerRepository _organizerRepository;
+    private readonly IWeddingPlannerProfileReader _plannerProfileReader;
+
+    public GetEventByIdQueryHandler(
+        IWeddingEventRepository weddingEventRepository,
+        IEventOrganizerRepository organizerRepository,
+        IWeddingPlannerProfileReader plannerProfileReader)
     {
-        private readonly IWeddingEventRepository _weddingEventRepository;
+        _weddingEventRepository = weddingEventRepository;
+        _organizerRepository = organizerRepository;
+        _plannerProfileReader = plannerProfileReader;
+    }
 
-        public GetEventByIdQueryHandler(IWeddingEventRepository weddingEventRepository)
+    public async Task<EventDto?> Handle(GetEventByIdQuery request, CancellationToken cancellationToken)
+    {
+        var weddingEvent = await _weddingEventRepository.GetByIdAsync(request.EventId, cancellationToken);
+
+        if (weddingEvent is null)
         {
-            _weddingEventRepository = weddingEventRepository;
+            return null;
         }
 
-        public async Task<EventDto?> Handle(GetEventByIdQuery request, CancellationToken cancellationToken)
+        var isOrganizer = await _organizerRepository.IsUserAlreadyOrganizerAsync(
+            request.EventId,
+            request.UserId,
+            cancellationToken);
+
+        if (!isOrganizer)
         {
-            var weddingEvent = await _weddingEventRepository.GetByIdAsync(request.EventId, cancellationToken);
-
-            if (weddingEvent is null)
-            {
-                return null; // Event not found
-            }
-
-            // Map the entity to the DTO
-            return new EventDto(
-                weddingEvent.Id,
-                weddingEvent.EventName,
-                weddingEvent.EventDate,
-                weddingEvent.CreatedById,
-                weddingEvent.TotalBudget);
+            throw new ForbiddenAccessException("You do not have permission to view this event.");
         }
+
+        var plannerBranding = await _plannerProfileReader.GetByEventIdAsync(request.EventId, cancellationToken);
+
+        EventPlannerBrandingDto? brandingDto = plannerBranding is null
+            ? null
+            : new EventPlannerBrandingDto(
+                plannerBranding.BusinessName,
+                plannerBranding.DisplayName,
+                plannerBranding.AgencyLogoUrl,
+                plannerBranding.IsWhiteLabeled);
+
+        return new EventDto(
+            weddingEvent.Id,
+            weddingEvent.EventName,
+            weddingEvent.EventDate,
+            weddingEvent.CreatedById,
+            weddingEvent.TotalBudget,
+            PlannerBranding: brandingDto);
     }
 }

@@ -61,8 +61,11 @@ public class BudgetController : ControllerBase
         var userId = GetUserId();
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-        var isMember = await _organizerRepository.IsUserAlreadyOrganizerAsync(eventId, userId);
-        if (!isMember) return Forbid();
+        var organizer = await _organizerRepository.GetOrganizerAsync(eventId, userId);
+        if (organizer is null) return Forbid();
+
+        if (organizer.PermissionLevel == PermissionLevel.Viewer)
+            throw new ForbiddenAccessException("You do not have permission to add expenses for this event.");
 
         var command = new AddExpenseCommand
         {

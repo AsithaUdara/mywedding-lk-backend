@@ -123,6 +123,32 @@ namespace MyWedding.API.Controllers
 
             return NoContent();
         }
+
+        /// <summary>
+        /// Realigns incomplete template tasks from today forward (fixes overdue schedules for mid-planning weddings).
+        /// </summary>
+        [HttpPost("api/events/{eventId:guid}/tasks/realign-schedule")]
+        public async Task<IActionResult> RealignTaskSchedule(Guid eventId)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var result = await _mediator.Send(new RealignEventTaskScheduleCommand
+            {
+                EventId = eventId,
+                UserId = userId
+            });
+
+            return Ok(new
+            {
+                message = "Task schedule realigned from today through wedding day.",
+                tasksUpdated = result.TasksUpdated,
+                tasksSkipped = result.TasksSkipped
+            });
+        }
     }
 
     /// <summary>Request DTO for creating a new task.</summary>

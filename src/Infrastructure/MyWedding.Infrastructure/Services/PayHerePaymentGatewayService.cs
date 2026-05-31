@@ -147,15 +147,26 @@ public class PayHerePaymentGatewayService : IPaymentGatewayService
         if (!Guid.TryParse(notification.OrderId, out var orderId))
             return new PayHereWebhookProcessResult(false, false, false, "Invalid order_id.");
 
-        var subscriptionCheckout = await _db.VendorSubscriptionCheckouts
+        var vendorSubscriptionCheckout = await _db.VendorSubscriptionCheckouts
             .FirstOrDefaultAsync(c => c.Id == orderId, cancellationToken);
-        if (subscriptionCheckout is not null)
+        if (vendorSubscriptionCheckout is not null)
         {
             return new PayHereWebhookProcessResult(
                 true,
-                subscriptionCheckout.Status == "Paid",
+                vendorSubscriptionCheckout.Status == "Paid",
                 IsSubscriptionPayment: true,
                 "Subscription webhook should be handled by PaymentsController.");
+        }
+
+        var plannerSubscriptionCheckout = await _db.PlannerSubscriptionCheckouts
+            .FirstOrDefaultAsync(c => c.Id == orderId, cancellationToken);
+        if (plannerSubscriptionCheckout is not null)
+        {
+            return new PayHereWebhookProcessResult(
+                true,
+                plannerSubscriptionCheckout.Status == "Paid",
+                IsSubscriptionPayment: true,
+                "Planner subscription webhook should be handled by PaymentsController.");
         }
 
         var booking = await _db.VendorBookings
@@ -274,27 +285,20 @@ public class PayHerePaymentGatewayService : IPaymentGatewayService
         cancelUrl ??= _configuration["PayHere:CancelUrl"] ?? returnUrl;
 
         var orderId = bookingId.ToString();
-        var checkout = new Dictionary<string, object>
-        {
-            ["checkoutUrl"] = sandboxUrl,
-            ["merchant_id"] = merchantId,
-            ["return_url"] = returnUrl,
-            ["cancel_url"] = cancelUrl,
-            ["notify_url"] = notifyUrl ?? string.Empty,
-            ["order_id"] = orderId,
-            ["items"] = "Vendor Deposit",
-            ["amount"] = amount,
-            ["currency"] = currency,
-            ["first_name"] = "Wedding",
-            ["last_name"] = "Client",
-            ["email"] = payerEmail ?? "client@mywedding.lk"
-        };
-
-        if (!string.IsNullOrWhiteSpace(merchantSecret))
-        {
-            checkout["hash"] = PayHereHashHelper.BuildCheckoutHash(
-                merchantId, orderId, amount, currency, merchantSecret);
-        }
+        var checkout = PayHereCheckoutFormBuilder.Build(
+            sandboxUrl,
+            merchantId,
+            merchantSecret,
+            orderId,
+            amount,
+            currency,
+            "Vendor Deposit",
+            returnUrl,
+            cancelUrl,
+            notifyUrl ?? string.Empty,
+            payerEmail ?? "client@mywedding.lk",
+            firstName: "Wedding",
+            lastName: "Client");
 
         return checkout;
     }

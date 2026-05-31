@@ -12,6 +12,12 @@ public interface IEmailService
     Task SendVendorBookingAcceptedAsync(
         VendorBookingAcceptedEmailMessage message,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Notifies a vendor that their marketplace application was not approved.</summary>
+    Task SendVendorRejectionAsync(
+        string toEmail,
+        string businessName,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed record EventInvitationEmailMessage(

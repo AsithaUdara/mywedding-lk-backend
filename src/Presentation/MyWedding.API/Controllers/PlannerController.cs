@@ -136,7 +136,8 @@ public class PlannerController : ControllerBase
             planner.City,
             activeSub?.Tier.ToString() ?? SubscriptionPlanTier.Free.ToString(),
             activeSub?.MaxConcurrentEvents ?? 1,
-            events
+            events,
+            planner.AgencyLogoUrl
         ));
     }
 
@@ -201,7 +202,10 @@ public class PlannerController : ControllerBase
             plannerLinks.Count(e => e.Status == PlannerClientEventStatus.Active),
             pendingBookings,
             confirmedBookings,
-            upcomingEvents
+            upcomingEvents,
+            activeSub?.MonthlyFee ?? 0,
+            activeSub?.EndsAt,
+            activeSub?.StartsAt
         ));
     }
 
@@ -305,6 +309,58 @@ public class PlannerController : ControllerBase
         });
 
         return Ok(result);
+    }
+
+    [HttpGet("bookings")]
+    public async Task<IActionResult> GetPlannerBookings(CancellationToken cancellationToken)
+    {
+        var plannerId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(plannerId))
+            return Unauthorized();
+
+        var eventIds = await _db.PlannerClientEvents
+            .AsNoTracking()
+            .Where(e => e.PlannerId == plannerId)
+            .Select(e => e.EventId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        if (eventIds.Count == 0)
+            return Ok(Array.Empty<PlannerBookingListItemDto>());
+
+        var bookings = await _db.VendorBookings
+            .AsNoTracking()
+            .Where(b => eventIds.Contains(b.EventId))
+            .Include(b => b.VendorService!)
+                .ThenInclude(s => s.Vendor)
+            .Include(b => b.WeddingEvent)
+            .OrderByDescending(b => b.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        var bookingIds = bookings.Select(b => b.Id).ToList();
+        var paymentTransactions = await _db.BookingPaymentTransactions
+            .AsNoTracking()
+            .Where(t => bookingIds.Contains(t.BookingId))
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        var paymentByBooking = paymentTransactions
+            .GroupBy(t => t.BookingId)
+            .ToDictionary(g => g.Key, g => g.First().Status.ToString());
+
+        var items = bookings.Select(b => new PlannerBookingListItemDto(
+            b.Id,
+            b.EventId,
+            b.WeddingEvent?.EventName ?? "Untitled Event",
+            b.VendorService?.ServiceName ?? "Vendor service",
+            b.VendorService?.Vendor?.BusinessName ?? "Vendor",
+            b.Status.ToString(),
+            paymentByBooking.TryGetValue(b.Id, out var paymentStatus) ? paymentStatus : "None",
+            b.FinalAmount,
+            b.CreatedAt
+        ));
+
+        return Ok(items);
     }
 
     [HttpPatch("events/{eventId:guid}/stage")]
@@ -421,6 +477,7 @@ public class PlannerController : ControllerBase
         var maxConcurrentEvents = request.Tier == SubscriptionPlanTier.PlannerPro ? 10 : 1;
         var monthlyFee = request.Tier == SubscriptionPlanTier.PlannerPro ? request.MonthlyFee : 0;
 
+        var periodStart = DateTime.UtcNow;
         await _db.PlannerSubscriptions.AddAsync(new PlannerSubscription
         {
             Id = Guid.NewGuid(),
@@ -429,12 +486,73 @@ public class PlannerController : ControllerBase
             Status = SubscriptionStatus.Active,
             MonthlyFee = monthlyFee,
             MaxConcurrentEvents = maxConcurrentEvents,
-            StartsAt = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow
+            StartsAt = periodStart,
+            EndsAt = request.Tier == SubscriptionPlanTier.PlannerPro
+                ? periodStart.AddMonths(1)
+                : null,
+            CreatedAt = periodStart
         }, cancellationToken);
 
         await _db.SaveChangesAsync(cancellationToken);
         return Ok(new { message = "Planner subscription updated.", maxConcurrentEvents });
+    }
+
+    [HttpGet("billing-profile")]
+    public async Task<IActionResult> GetBillingProfile(CancellationToken cancellationToken)
+    {
+        var plannerId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(plannerId))
+            return Unauthorized();
+
+        var profile = await _db.PlannerBillingProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.PlannerId == plannerId, cancellationToken);
+
+        if (profile is null)
+            return Ok(new { hasPaymentMethod = false });
+
+        return Ok(new
+        {
+            hasPaymentMethod = !string.IsNullOrEmpty(profile.Last4),
+            cardholderName = profile.CardholderName,
+            cardBrand = profile.CardBrand,
+            last4 = profile.Last4,
+            expiryMonth = profile.ExpiryMonth,
+            expiryYear = profile.ExpiryYear,
+            updatedAt = profile.UpdatedAt,
+        });
+    }
+
+    [HttpPut("billing-profile")]
+    public async Task<IActionResult> SaveBillingProfile(
+        [FromBody] PlannerBillingProfileRequest request,
+        CancellationToken cancellationToken)
+    {
+        var plannerId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(plannerId))
+            return Unauthorized();
+
+        if (string.IsNullOrWhiteSpace(request.Last4) || request.Last4.Length != 4 || !request.Last4.All(char.IsDigit))
+            return BadRequest(new { message = "Only the last 4 digits are stored. Enter a valid last-4." });
+
+        var profile = await _db.PlannerBillingProfiles
+            .FirstOrDefaultAsync(p => p.PlannerId == plannerId, cancellationToken);
+
+        if (profile is null)
+        {
+            profile = new PlannerBillingProfile { PlannerId = plannerId };
+            await _db.PlannerBillingProfiles.AddAsync(profile, cancellationToken);
+        }
+
+        profile.CardholderName = request.CardholderName?.Trim();
+        profile.CardBrand = request.CardBrand?.Trim();
+        profile.Last4 = request.Last4;
+        profile.ExpiryMonth = request.ExpiryMonth;
+        profile.ExpiryYear = request.ExpiryYear;
+        profile.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return Ok(new { message = "Payment method saved (masked). Full card numbers are never stored." });
     }
 
     [HttpPut("profile")]
@@ -458,6 +576,42 @@ public class PlannerController : ControllerBase
         return Ok(new { message = "Planner profile updated." });
     }
 
+    [HttpPut("profile/agency-logo")]
+    public async Task<IActionResult> UpdateAgencyLogo(
+        [FromBody] UpdatePlannerAgencyLogoRequest request,
+        CancellationToken cancellationToken)
+    {
+        var plannerId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(plannerId))
+            return Unauthorized();
+
+        if (string.IsNullOrWhiteSpace(request.AgencyLogoUrl))
+            return BadRequest(new { message = "Agency logo URL is required." });
+
+        var activeSub = await _db.PlannerSubscriptions
+            .Where(s => s.PlannerId == plannerId && s.Status == SubscriptionStatus.Active)
+            .OrderByDescending(s => s.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (activeSub?.Tier != SubscriptionPlanTier.PlannerPro)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                message = "Upgrade to Planner Pro to unlock white-labeling."
+            });
+        }
+
+        var planner = await _db.WeddingPlanners.FirstOrDefaultAsync(p => p.UserId == plannerId, cancellationToken);
+        if (planner is null)
+            return NotFound(new { message = "Planner profile not found." });
+
+        planner.AgencyLogoUrl = request.AgencyLogoUrl.Trim();
+        planner.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new { message = "Agency logo updated.", agencyLogoUrl = planner.AgencyLogoUrl });
+    }
+
     private async Task<User?> ResolveClientUserAsync(string? clientUserId, string? clientEmail, CancellationToken cancellationToken)
     {
         if (!string.IsNullOrWhiteSpace(clientUserId))
@@ -475,10 +629,22 @@ public record CreatePlannerEventRequest(string EventName, DateTime EventDate, de
 public record AssignPlannerClientRequest(string? ClientUserId, string? ClientEmail);
 public record UpdatePlannerSubscriptionRequest(SubscriptionPlanTier Tier, decimal MonthlyFee);
 public record UpdatePlannerProfileRequest(string BusinessName, string? BusinessDescription, string? ContactPhone, string? City);
+public record UpdatePlannerAgencyLogoRequest(string AgencyLogoUrl);
 public record PlannerClientEventSummary(Guid PlannerClientEventId, Guid EventId, string EventName, DateTime EventDate, string ClientUserId, string ClientEmail, string Status);
 public record PlannerUpcomingEventDto(Guid EventId, string EventName, DateTime EventDate, string ClientEmail, string Status, decimal TotalBudget);
 public record PlannerClientDto(string ClientUserId, string ClientEmail, int TotalEvents, int ActiveEvents, DateTime LastActivityAt);
 public record UpdateEventLifecycleStageRequest(string Stage);
+public record PlannerBookingListItemDto(
+    Guid BookingId,
+    Guid EventId,
+    string EventName,
+    string ServiceName,
+    string VendorName,
+    string BookingStatus,
+    string PaymentStatus,
+    decimal FinalAmount,
+    DateTime CreatedAt
+);
 public record PlannerEventListItemDto(
     Guid PlannerClientEventId,
     Guid EventId,
@@ -505,8 +671,17 @@ public record PlannerOverviewResponse(
     int ActiveWeddings,
     int PendingBookings,
     int ConfirmedBookings,
-    IReadOnlyCollection<PlannerUpcomingEventDto> UpcomingEvents
+    IReadOnlyCollection<PlannerUpcomingEventDto> UpcomingEvents,
+    decimal SubscriptionMonthlyFee,
+    DateTime? SubscriptionEndsAt,
+    DateTime? SubscriptionStartsAt
 );
+public record PlannerBillingProfileRequest(
+    string? CardholderName,
+    string? CardBrand,
+    string Last4,
+    byte? ExpiryMonth,
+    short? ExpiryYear);
 public record PlannerDashboardResponse(
     string PlannerId,
     string PlannerName,
@@ -516,5 +691,6 @@ public record PlannerDashboardResponse(
     string? City,
     string ActivePlanTier,
     int MaxConcurrentEvents,
-    IReadOnlyCollection<PlannerClientEventSummary> Events
+    IReadOnlyCollection<PlannerClientEventSummary> Events,
+    string? AgencyLogoUrl
 );

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using MyWedding.Domain.Enums;
 using MyWedding.Infrastructure.Persistence;
 using MyWedding.Vendors.Application.Features.Admin.Commands.VerifyVendor;
+using MyWedding.Vendors.Application.Features.Admin.Queries.GetAdminVendors;
 using MyWedding.Vendors.Application.Features.Admin.Queries.GetPendingVendors;
 using MyWedding.Vendors.Application.Features.Admin.Queries.GetPlatformAnalytics;
 using MyWedding.Vendors.Application.Features.Admin.Queries.GetPlatformStats;
@@ -42,6 +43,38 @@ namespace MyWedding.API.Controllers
 
             var result = await _mediator.Send(new GetPendingVendorsQuery());
             return Ok(result);
+        }
+
+        /// <summary>Lists all vendors with optional verification status filter.</summary>
+        [HttpGet("vendors")]
+        public async Task<IActionResult> GetAdminVendors(
+            [FromQuery] VerificationStatus? status,
+            CancellationToken cancellationToken)
+        {
+            if (!IsAdmin()) return Forbid();
+
+            var vendors = (await _mediator.Send(new GetAdminVendorsQuery { Status = status })).ToList();
+            if (vendors.Count == 0) return Ok(vendors);
+
+            var vendorIds = vendors.Select(v => v.UserId).ToList();
+            var activeSubscriptions = await _db.VendorSubscriptions
+                .AsNoTracking()
+                .Where(s => vendorIds.Contains(s.VendorId) && s.Status == SubscriptionStatus.Active)
+                .OrderByDescending(s => s.CreatedAt)
+                .ToListAsync(cancellationToken);
+
+            var subscriptionByVendor = activeSubscriptions
+                .GroupBy(s => s.VendorId)
+                .ToDictionary(g => g.Key, g => g.First().Tier.ToString());
+
+            foreach (var vendor in vendors)
+            {
+                vendor.SubscriptionTier = subscriptionByVendor.TryGetValue(vendor.UserId, out var tier)
+                    ? tier
+                    : SubscriptionPlanTier.Free.ToString();
+            }
+
+            return Ok(vendors);
         }
 
         // ──────────────────────────────────────────────────────
