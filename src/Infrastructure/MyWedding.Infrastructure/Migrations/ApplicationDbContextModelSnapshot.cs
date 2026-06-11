@@ -72,6 +72,9 @@ namespace MyWedding.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<byte[]>("PdfContent")
+                        .HasColumnType("varbinary(max)");
+
                     b.Property<DateTime?>("VendorSignedAt")
                         .HasColumnType("datetime2");
 
@@ -1162,18 +1165,47 @@ namespace MyWedding.Infrastructure.Migrations
                     b.Property<int>("EventLifecycleStage")
                         .HasColumnType("int");
 
+                    b.Property<int>("TaskPlanPhase")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("BriefCompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CulturalOrReligiousNotes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("EstimatedGuestCount")
+                        .HasColumnType("int");
+
                     b.Property<string>("EventName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("GuestCountMax")
+                        .HasColumnType("int");
+
                     b.Property<string>("ManagingPlannerId")
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("MustHavesNotes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ServicesAlreadyBooked")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("TotalBudget")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("VenuePreference")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<string>("WeddingStyle")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.HasKey("Id");
 

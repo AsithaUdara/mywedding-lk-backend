@@ -1,5 +1,6 @@
 using MediatR;
 using MyWedding.Domain.Interfaces;
+using MyWedding.SharedKernel;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -24,10 +25,18 @@ namespace MyWedding.Vendors.Application.Features.Bookings.Queries.GetVendorBooki
                 b.Id,
                 b.VendorService?.ServiceName ?? "Unknown",
                 b.WeddingEvent?.EventName ?? "Unknown",
-                b.BookedBy != null ? $"{b.BookedBy.FirstName} {b.BookedBy.LastName}" : "Unknown",
+                UserDisplayNameHelper.GetDisplayName(
+                    b.BookedBy?.FirstName,
+                    b.BookedBy?.LastName,
+                    b.BookedBy?.Email),
+                b.BookedBy?.Email,
                 b.FinalAmount,
                 b.Status,
-                b.ServiceDate
+                b.ServiceDate,
+                b.BookingContract?.ContractFileUrl,
+                b.BookingContract?.VendorSignedAt,
+                b.BookingContract?.ClientSignedAt,
+                !string.IsNullOrWhiteSpace(b.BookingContract?.ContractFileUrl)
             )).ToList();
         }
     }

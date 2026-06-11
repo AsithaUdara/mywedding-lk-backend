@@ -4,7 +4,7 @@ using MyWedding.Domain.Entities;
 using MyWedding.Domain.Enums;
 using MyWedding.Infrastructure.Persistence;
 using MyWedding.SharedKernel.Exceptions;
-using MyWedding.Tasks.Application.Features.Tasks.Commands.GenerateTaskTemplate;
+using MyWedding.Tasks.Application.Features.Tasks.Commands.GenerateDiscoveryTasks;
 
 namespace MyWedding.API.Features.Planner;
 
@@ -89,10 +89,11 @@ public class CreatePlannerEventCommandHandler : IRequestHandler<CreatePlannerEve
         await _db.SaveChangesAsync(cancellationToken);
 
         var tasksGenerated = await _mediator.Send(
-            new GenerateTaskTemplateCommand
+            new GenerateDiscoveryTasksCommand
             {
                 EventId = weddingEvent.Id,
-                UserId = request.PlannerId
+                UserId = request.PlannerId,
+                SkipIfDiscoveryExists = false
             },
             cancellationToken);
 

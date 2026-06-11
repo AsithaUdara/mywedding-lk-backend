@@ -76,8 +76,9 @@ namespace MyWedding.Collaboration.Application.Features.Messages.Commands.PostMes
                 content = newMessage.Content,
                 createdAt = newMessage.CreatedAt,
                 senderId = newMessage.SenderId,
-                senderFirstName = sender?.FirstName ?? "Unknown",
-                senderLastName = sender?.LastName ?? "User",
+                senderFirstName = sender?.FirstName ?? string.Empty,
+                senderLastName = sender?.LastName ?? string.Empty,
+                senderEmail = sender?.Email ?? string.Empty,
                 attachment = (object?)null // Simplified for now
             });
 

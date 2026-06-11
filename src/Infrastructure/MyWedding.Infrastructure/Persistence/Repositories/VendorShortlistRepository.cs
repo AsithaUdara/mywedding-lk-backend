@@ -27,9 +27,17 @@ public class VendorShortlistRepository : IVendorShortlistRepository
             .AsNoTracking()
             .Include(i => i.VendorService)
             .ThenInclude(s => s!.Vendor)
+            .Include(i => i.VendorBooking)
+            .ThenInclude(b => b!.BookingContract)
             .Where(i => i.EventId == eventId)
             .OrderBy(i => i.CreatedAt)
             .ToListAsync(cancellationToken);
+    }
+
+    public Task<bool> ExistsForBookingIdAsync(Guid bookingId, CancellationToken cancellationToken = default)
+    {
+        return _context.VendorShortlistItems
+            .AnyAsync(i => i.VendorBookingId == bookingId, cancellationToken);
     }
 
     public async Task AddAsync(VendorShortlistItem item, CancellationToken cancellationToken = default)

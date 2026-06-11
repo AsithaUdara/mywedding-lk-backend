@@ -22,7 +22,9 @@ namespace MyWedding.Vendors.Application.Features.Vendors.Queries.GetVendors
         {
             var vendors = await _vendorRepository.GetAllAsync(cancellationToken);
 
-            vendors = vendors.Where(v => v.VerificationStatus == VerificationStatus.Verified);
+            vendors = vendors.Where(v =>
+                v.VerificationStatus == VerificationStatus.Verified &&
+                VendorMediaHelper.ActiveServices(v).Any());
 
             if (!string.IsNullOrEmpty(request.Category))
             {

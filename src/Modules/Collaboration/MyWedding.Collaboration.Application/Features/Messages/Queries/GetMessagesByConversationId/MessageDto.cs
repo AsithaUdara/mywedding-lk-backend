@@ -10,6 +10,7 @@ namespace MyWedding.Collaboration.Application.Features.Messages.Queries.GetMessa
         string SenderId,
         string SenderFirstName,
         string SenderLastName,
+        string SenderEmail,
         // We can add attachment details here later
         object? Attachment 
     );

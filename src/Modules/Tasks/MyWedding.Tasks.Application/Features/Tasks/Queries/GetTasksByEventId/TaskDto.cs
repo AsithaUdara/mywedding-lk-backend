@@ -12,6 +12,7 @@ namespace MyWedding.Tasks.Application.Features.Tasks.Queries.GetTasksByEventId
         DateTime? StartDate,
         DateTime? DueDate,
         Guid? DependsOnTaskId,
-        string? AssignedToUserId
+        string? AssignedToUserId,
+        DateTime CreatedAt
     );
 }

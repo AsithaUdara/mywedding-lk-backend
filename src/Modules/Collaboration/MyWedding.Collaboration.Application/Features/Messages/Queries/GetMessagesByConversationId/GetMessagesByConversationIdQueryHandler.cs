@@ -50,6 +50,7 @@ namespace MyWedding.Collaboration.Application.Features.Messages.Queries.GetMessa
                 m.Sender!.Id,
                 m.Sender.FirstName,
                 m.Sender.LastName,
+                m.Sender.Email,
                 null
             ));
         }

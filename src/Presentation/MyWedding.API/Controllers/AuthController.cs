@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MyWedding.SharedKernel;
 
 
 using System.Security.Claims;
@@ -46,7 +47,9 @@ public class AuthController : ControllerBase
         var displayName = User.FindFirstValue("name") ?? string.Empty;
 
         var nameParts = displayName.Trim().Split(' ', 2, System.StringSplitOptions.RemoveEmptyEntries);
-        var firstName = nameParts.Length > 0 ? nameParts[0] : "User";
+        var firstName = nameParts.Length > 0
+            ? nameParts[0]
+            : UserDisplayNameHelper.NameFromEmail(email);
         var lastName = nameParts.Length > 1 ? nameParts[1] : string.Empty;
 
         var command = new SyncUserCommand

@@ -11,6 +11,7 @@ public class GetVendorShortlistByEventQuery : IRequest<IReadOnlyList<VendorShort
 public record VendorShortlistItemDto(
     Guid Id,
     Guid VendorServiceId,
+    string? VendorUserId,
     string? ServiceName,
     string? VendorBusinessName,
     string? CategoryLabel,
@@ -20,4 +21,8 @@ public record VendorShortlistItemDto(
     DateTime? ServiceDate,
     Guid? VendorBookingId,
     DateTime? SentToClientAt,
-    DateTime? ClientApprovedAt);
+    DateTime? ClientApprovedAt,
+    string? ContractFileUrl,
+    DateTime? ContractSentAt,
+    DateTime? ContractSignedAt,
+    string? BookingStatus);

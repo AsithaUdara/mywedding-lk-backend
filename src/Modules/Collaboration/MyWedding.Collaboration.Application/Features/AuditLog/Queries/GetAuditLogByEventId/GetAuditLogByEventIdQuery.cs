@@ -7,5 +7,6 @@ namespace MyWedding.Collaboration.Application.Features.AuditLog.Queries.GetAudit
     public class GetAuditLogByEventIdQuery : IRequest<IEnumerable<AuditLogItemDto>>
     {
         public Guid EventId { get; init; }
+        public string? UserId { get; init; }
     }
 }

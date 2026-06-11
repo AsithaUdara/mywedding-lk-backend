@@ -16,5 +16,9 @@ namespace MyWedding.Domain.Interfaces
             CancellationToken cancellationToken = default);
         Task AddAsync(Vendor vendor, CancellationToken cancellationToken = default);
         void Update(Vendor vendor);
+        Task<bool> SetVerificationStatusAsync(
+            string vendorId,
+            VerificationStatus status,
+            CancellationToken cancellationToken = default);
     }
 }

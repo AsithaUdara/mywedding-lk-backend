@@ -84,5 +84,18 @@ namespace MyWedding.Infrastructure.Persistence.Repositories
         {
             _context.Vendors.Update(vendor);
         }
+
+        public async Task<bool> SetVerificationStatusAsync(
+            string vendorId,
+            MyWedding.Domain.Enums.VerificationStatus status,
+            CancellationToken cancellationToken = default)
+        {
+            var rows = await _context.Vendors
+                .Where(v => v.UserId == vendorId)
+                .ExecuteUpdateAsync(
+                    s => s.SetProperty(v => v.VerificationStatus, status),
+                    cancellationToken);
+            return rows > 0;
+        }
     }
 }

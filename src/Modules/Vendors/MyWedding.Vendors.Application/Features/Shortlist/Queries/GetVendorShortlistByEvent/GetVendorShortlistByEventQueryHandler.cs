@@ -44,6 +44,7 @@ public class GetVendorShortlistByEventQueryHandler
         return items.Select(i => new VendorShortlistItemDto(
             i.Id,
             i.VendorServiceId,
+            i.VendorService?.Vendor?.UserId,
             i.VendorService?.ServiceName,
             i.VendorService?.Vendor?.BusinessName,
             i.CategoryLabel,
@@ -53,6 +54,10 @@ public class GetVendorShortlistByEventQueryHandler
             i.ServiceDate,
             i.VendorBookingId,
             i.SentToClientAt,
-            i.ClientApprovedAt)).ToList();
+            i.ClientApprovedAt,
+            i.VendorBooking?.BookingContract?.ContractFileUrl,
+            i.VendorBooking?.BookingContract?.VendorSignedAt,
+            i.VendorBooking?.BookingContract?.ClientSignedAt,
+            i.VendorBooking?.Status.ToString())).ToList();
     }
 }

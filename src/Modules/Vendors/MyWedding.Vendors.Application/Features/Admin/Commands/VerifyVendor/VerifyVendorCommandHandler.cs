@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using MyWedding.Domain.Enums;
 using MyWedding.Domain.Interfaces;
 using MyWedding.SharedKernel.Exceptions;
@@ -11,15 +12,18 @@ public class VerifyVendorCommandHandler : IRequestHandler<VerifyVendorCommand, b
     private readonly IVendorRepository _vendorRepository;
     private readonly IEmailService _emailService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<VerifyVendorCommandHandler> _logger;
 
     public VerifyVendorCommandHandler(
         IVendorRepository vendorRepository,
         IEmailService emailService,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILogger<VerifyVendorCommandHandler> logger)
     {
         _vendorRepository = vendorRepository;
         _emailService = emailService;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task<bool> Handle(VerifyVendorCommand request, CancellationToken cancellationToken)
@@ -28,11 +32,18 @@ public class VerifyVendorCommandHandler : IRequestHandler<VerifyVendorCommand, b
         if (vendor is null)
             throw new NotFoundException(nameof(vendor), request.VendorId);
 
-        vendor.VerificationStatus = request.IsApproved
+        var newStatus = request.IsApproved
             ? VerificationStatus.Verified
             : VerificationStatus.Rejected;
 
-        _vendorRepository.Update(vendor);
+        var updated = await _vendorRepository.SetVerificationStatusAsync(
+            request.VendorId,
+            newStatus,
+            cancellationToken);
+
+        if (!updated)
+            throw new NotFoundException(nameof(vendor), request.VendorId);
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         if (!request.IsApproved)
@@ -40,10 +51,21 @@ public class VerifyVendorCommandHandler : IRequestHandler<VerifyVendorCommand, b
             var toEmail = vendor.User?.Email;
             if (!string.IsNullOrWhiteSpace(toEmail))
             {
-                await _emailService.SendVendorRejectionAsync(
-                    toEmail,
-                    vendor.BusinessName,
-                    cancellationToken);
+                try
+                {
+                    await _emailService.SendVendorRejectionAsync(
+                        toEmail,
+                        vendor.BusinessName,
+                        cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Vendor {VendorId} rejected but rejection email to {Email} failed.",
+                        request.VendorId,
+                        toEmail);
+                }
             }
         }
 

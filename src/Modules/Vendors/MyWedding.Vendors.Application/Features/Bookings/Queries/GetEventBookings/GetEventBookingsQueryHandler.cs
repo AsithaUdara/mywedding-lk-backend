@@ -24,6 +24,8 @@ namespace MyWedding.Vendors.Application.Features.Bookings.Queries.GetEventBookin
                 b.Id,
                 b.VendorService?.ServiceName ?? "Unknown",
                 b.VendorService?.Vendor?.BusinessName ?? "Unknown",
+                b.VendorService?.Vendor?.UserId,
+                b.ServiceId,
                 b.FinalAmount,
                 b.Status,
                 b.ServiceDate

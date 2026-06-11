@@ -1,5 +1,6 @@
 using MediatR;
 using MyWedding.Domain.Entities;
+using MyWedding.Domain.Enums;
 using MyWedding.Domain.Interfaces;
 using MyWedding.SharedKernel.Exceptions;
 using MyWedding.SharedKernel.Interfaces;
@@ -12,15 +13,18 @@ public class GenerateTaskTemplateCommandHandler : IRequestHandler<GenerateTaskTe
 {
     private readonly IEventTaskRepository _taskRepository;
     private readonly IWeddingEventRepository _eventRepository;
+    private readonly ICollaborationService _collaborationService;
     private readonly IUnitOfWork _unitOfWork;
 
     public GenerateTaskTemplateCommandHandler(
         IEventTaskRepository taskRepository,
         IWeddingEventRepository eventRepository,
+        ICollaborationService collaborationService,
         IUnitOfWork unitOfWork)
     {
         _taskRepository = taskRepository;
         _eventRepository = eventRepository;
+        _collaborationService = collaborationService;
         _unitOfWork = unitOfWork;
     }
 
@@ -37,89 +41,33 @@ public class GenerateTaskTemplateCommandHandler : IRequestHandler<GenerateTaskTe
         if (!canManage)
             throw new ForbiddenAccessException("You do not have permission to generate tasks for this event.");
 
-        if (request.SkipIfTasksExist && await _taskRepository.AnyByEventIdAsync(request.EventId, cancellationToken))
+        if (weddingEvent.TaskPlanPhase == TaskPlanPhase.Full)
+        {
             return 0;
+        }
 
-        var weddingDate = weddingEvent.EventDate.Date;
-        var template = WeddingTaskTemplate.Entries;
         var now = DateTime.UtcNow;
-        var daysUntilWedding = Math.Max(1, (weddingDate - now.Date).Days);
+        var created = await WeddingChecklistMaterializer.MaterializeFullChecklistAsync(
+            request.EventId,
+            weddingEvent.EventDate,
+            _taskRepository,
+            excludeTitles: null,
+            additionalTasks: null,
+            cancellationToken);
 
-        var includedIndices = new List<int>();
-        for (var i = 0; i < template.Count; i++)
+        weddingEvent.TaskPlanPhase = TaskPlanPhase.Full;
+        if (weddingEvent.EventLifecycleStage is EventLifecycleStage.Lead or EventLifecycleStage.Onboarding)
         {
-            if (WeddingTaskScheduleCalculator.ShouldIncludeTemplateEntry(template[i].DueDaysBeforeWedding, daysUntilWedding))
-            {
-                includedIndices.Add(i);
-            }
+            weddingEvent.EventLifecycleStage = EventLifecycleStage.Planning;
         }
 
-        if (!includedIndices.Contains(template.Count - 1))
-        {
-            includedIndices.Add(template.Count - 1);
-            includedIndices.Sort();
-        }
-
-        var indexToTask = new Dictionary<int, EventTask>();
-        var tasksInOrder = new List<EventTask>();
-
-        foreach (var index in includedIndices)
-        {
-            var entry = template[index];
-            var window = WeddingTaskScheduleCalculator.ComputeScheduleDates(
-                weddingDate,
-                now,
-                entry.StartDaysBeforeWedding,
-                entry.DueDaysBeforeWedding);
-
-            var task = new EventTask
-            {
-                Id = Guid.NewGuid(),
-                EventId = request.EventId,
-                Title = entry.Title,
-                Status = DomainTaskStatus.ToDo,
-                StartDate = window.StartDate,
-                DueDate = window.DueDate,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
-
-            indexToTask[index] = task;
-            tasksInOrder.Add(task);
-            await _taskRepository.AddAsync(task, cancellationToken);
-        }
-
-        foreach (var index in includedIndices)
-        {
-            var dependsOnIndex = template[index].DependsOnTemplateIndex;
-            if (dependsOnIndex is null)
-            {
-                continue;
-            }
-
-            var task = indexToTask[index];
-            if (indexToTask.TryGetValue(dependsOnIndex.Value, out var dependency))
-            {
-                task.DependsOnTaskId = dependency.Id;
-                continue;
-            }
-
-            var fallbackIndex = includedIndices.LastOrDefault(i => i <= dependsOnIndex.Value);
-            if (indexToTask.TryGetValue(fallbackIndex, out var fallbackDep))
-            {
-                task.DependsOnTaskId = fallbackDep.Id;
-            }
-        }
-
-        var orderedTemplateTasks = includedIndices.Select(i => indexToTask[i]).ToList();
-        WeddingTaskScheduleCalculator.EnforceDependencyOrderByGraph(orderedTemplateTasks, weddingDate, orderedTemplateTasks);
-
-        foreach (var task in orderedTemplateTasks)
-        {
-            task.UpdatedAt = now;
-        }
+        weddingEvent.BriefCompletedAt ??= DateTime.UtcNow;
+        weddingEvent.UpdatedAt = now;
+        _eventRepository.Update(weddingEvent);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return includedIndices.Count;
+        await _collaborationService.NotifyChecklistUpdatedAsync(request.EventId);
+
+        return created;
     }
 }

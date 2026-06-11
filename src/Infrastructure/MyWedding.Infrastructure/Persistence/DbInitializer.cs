@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using MyWedding.Domain.Entities;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -71,6 +72,66 @@ namespace MyWedding.Infrastructure.Persistence
                         }
                     );
                 }
+                await context.SaveChangesAsync();
+            }
+
+            await NormalizeLegacyVendorDepositExpenseTitlesAsync(context);
+        }
+
+        private static async Task NormalizeLegacyVendorDepositExpenseTitlesAsync(ApplicationDbContext context)
+        {
+            const string legacyPrefix = "Vendor Deposit - ";
+            var legacyExpenses = await context.Expenses
+                .Where(e => e.Title.StartsWith(legacyPrefix))
+                .ToListAsync();
+
+            if (!legacyExpenses.Any())
+                return;
+
+            var parsedLegacy = new List<(Expense Expense, Guid BookingId)>();
+            foreach (var expense in legacyExpenses)
+            {
+                var bookingToken = expense.Title[legacyPrefix.Length..].Trim();
+                if (Guid.TryParse(bookingToken, out var bookingId))
+                {
+                    parsedLegacy.Add((expense, bookingId));
+                }
+            }
+
+            if (!parsedLegacy.Any())
+                return;
+
+            var bookingIds = parsedLegacy.Select(x => x.BookingId).Distinct().ToList();
+            var bookings = await context.VendorBookings
+                .Include(b => b.VendorService)
+                    .ThenInclude(s => s!.Vendor)
+                .Where(b => bookingIds.Contains(b.Id))
+                .ToDictionaryAsync(b => b.Id);
+
+            var updated = false;
+            foreach (var (expense, bookingId) in parsedLegacy)
+            {
+                if (!bookings.TryGetValue(bookingId, out var booking))
+                    continue;
+
+                var serviceName = booking.VendorService?.ServiceName?.Trim();
+                var vendorName = booking.VendorService?.Vendor?.BusinessName?.Trim();
+                var label = string.Join(" - ", new[] { vendorName, serviceName }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                var shortBookingId = booking.Id.ToString("N")[..8];
+                var normalizedTitle = string.IsNullOrWhiteSpace(label)
+                    ? $"Vendor deposit ({shortBookingId})"
+                    : $"Vendor deposit - {label} ({shortBookingId})";
+
+                if (!string.Equals(expense.Title, normalizedTitle, StringComparison.Ordinal))
+                {
+                    expense.Title = normalizedTitle;
+                    expense.UpdatedAt = DateTime.UtcNow;
+                    updated = true;
+                }
+            }
+
+            if (updated)
+            {
                 await context.SaveChangesAsync();
             }
         }

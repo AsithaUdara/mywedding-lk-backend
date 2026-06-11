@@ -45,6 +45,8 @@ public static class IntegrationServiceExtensions
 
     private static void RegisterMediaServices(IServiceCollection services)
     {
+        services.AddHttpClient(nameof(ContractFileFetcher));
+        services.AddScoped<IContractFileFetcher, ContractFileFetcher>();
         services.AddSingleton<IQuotePdfGenerator, InquiryQuotePdfGenerator>();
         services.AddSingleton<ICloudinaryMediaStorage, CloudinaryMediaStorage>();
         services.AddScoped<IWeddingPlannerProfileReader, WeddingPlannerProfileReader>();

@@ -8,8 +8,13 @@ namespace MyWedding.Vendors.Application.Features.Bookings.Queries.GetVendorBooki
         string ServiceName,
         string EventName,
         string CoupleName,
+        string? BookedByEmail,
         decimal FinalAmount,
         BookingStatus Status,
-        DateTime ServiceDate
+        DateTime ServiceDate,
+        string? ContractFileUrl,
+        DateTime? ContractSentAt,
+        DateTime? ContractSignedAt,
+        bool ContractUploaded
     );
 }

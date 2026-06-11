@@ -187,6 +187,74 @@ public class OpenAiCopilotService : IAiCopilotService
         CancellationToken cancellationToken) =>
         await new Mocks.MockAiCopilotService().SummarizeMeetingToTasksAsync(request, cancellationToken);
 
+    public async Task<PersonalizedChecklistPlanResult> GeneratePersonalizedChecklistPlanAsync(
+        PersonalizedChecklistPlanRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var apiKey = _configuration["OpenAI:ApiKey"];
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            _logger.LogWarning("OpenAI:ApiKey is not configured; returning simulated checklist plan.");
+            return await new Mocks.MockAiCopilotService().GeneratePersonalizedChecklistPlanAsync(request, cancellationToken);
+        }
+
+        var systemPrompt =
+            "You are a senior wedding planner in Sri Lanka. Given a couple brief and standard master checklist task titles, " +
+            "decide which standard tasks to EXCLUDE (already booked or not applicable) and which CUSTOM tasks to ADD. " +
+            "Respond with JSON only: {\"executiveSummary\":\"string\",\"excludeTemplateTitles\":[\"exact title from list\"]," +
+            "\"additionalTasks\":[{\"title\":\"string\",\"description\":\"string|null\",\"suggestedDueDate\":\"yyyy-MM-dd|null\",\"priority\":\"High|Medium|Low\"}]}";
+
+        var titles = string.Join("\n", request.StandardTemplateTaskTitles.Select((t, i) => $"{i + 1}. {t}"));
+
+        var userPrompt = new StringBuilder()
+            .AppendLine($"Event: {request.EventName} ({request.WeddingDate:yyyy-MM-dd})")
+            .AppendLine($"Guests: {request.EstimatedGuestCount?.ToString() ?? "TBD"} (max {request.GuestCountMax?.ToString() ?? "TBD"})")
+            .AppendLine($"Budget LKR: {(request.BudgetLkr.HasValue ? request.BudgetLkr.Value.ToString("N0") : "TBD")}")
+            .AppendLine($"Style: {request.WeddingStyle ?? "TBD"}")
+            .AppendLine($"Venue preference: {request.VenuePreference ?? "TBD"}")
+            .AppendLine($"Must-haves: {request.MustHavesNotes ?? "TBD"}")
+            .AppendLine($"Already booked: {request.ServicesAlreadyBooked ?? "none"}")
+            .AppendLine($"Cultural/religious: {request.CulturalOrReligiousNotes ?? "none"}")
+            .AppendLine()
+            .AppendLine("Meeting notes:")
+            .AppendLine(request.MeetingNotesOrTranscript ?? "(none)")
+            .AppendLine()
+            .AppendLine("Standard checklist titles:")
+            .AppendLine(titles)
+            .ToString();
+
+        try
+        {
+            var content = await CallChatCompletionsAsync(systemPrompt, userPrompt, jsonMode: true, cancellationToken);
+            var parsed = JsonSerializer.Deserialize<ChecklistPlanJson>(content, JsonOptions);
+            if (parsed is null || string.IsNullOrWhiteSpace(parsed.ExecutiveSummary))
+            {
+                throw new InvalidOperationException("OpenAI returned an invalid checklist plan payload.");
+            }
+
+            var exclude = parsed.ExcludeTemplateTitles?
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .Select(t => t.Trim())
+                .ToList() ?? [];
+
+            var additional = parsed.AdditionalTasks?
+                .Where(t => !string.IsNullOrWhiteSpace(t.Title))
+                .Select(t => new ProposedTaskItem(
+                    t.Title!.Trim(),
+                    string.IsNullOrWhiteSpace(t.Description) ? null : t.Description.Trim(),
+                    ParseDueDate(t.SuggestedDueDate),
+                    string.IsNullOrWhiteSpace(t.Priority) ? "Medium" : t.Priority.Trim()))
+                .ToList() ?? [];
+
+            return new PersonalizedChecklistPlanResult(parsed.ExecutiveSummary.Trim(), exclude, additional, IsSimulated: false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "OpenAI checklist plan failed; using fallback.");
+            return await new Mocks.MockAiCopilotService().GeneratePersonalizedChecklistPlanAsync(request, cancellationToken);
+        }
+    }
+
     private sealed class InquiryEmailJson
     {
         public string? Subject { get; set; }
@@ -205,5 +273,12 @@ public class OpenAiCopilotService : IAiCopilotService
         public string? Description { get; set; }
         public string? SuggestedDueDate { get; set; }
         public string? Priority { get; set; }
+    }
+
+    private sealed class ChecklistPlanJson
+    {
+        public string? ExecutiveSummary { get; set; }
+        public List<string>? ExcludeTemplateTitles { get; set; }
+        public List<ProposedTaskJson>? AdditionalTasks { get; set; }
     }
 }

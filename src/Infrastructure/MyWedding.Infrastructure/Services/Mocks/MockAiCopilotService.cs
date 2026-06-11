@@ -96,4 +96,51 @@ public class MockAiCopilotService : IAiCopilotService
 
         return new MeetingSummaryResult(summary, tasks, IsSimulated: true);
     }
+
+    public async Task<PersonalizedChecklistPlanResult> GeneratePersonalizedChecklistPlanAsync(
+        PersonalizedChecklistPlanRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        await Task.Delay(180, cancellationToken);
+
+        var guestLine = request.EstimatedGuestCount is > 0
+            ? $"~{request.EstimatedGuestCount} guests"
+            : "guest count TBD";
+
+        var summary =
+            $"Personalized plan for \"{request.EventName}\" ({guestLine}, {request.WeddingDate:dd MMM yyyy}). " +
+            $"Style: {request.WeddingStyle ?? "to be refined"}. " +
+            "Standard checklist trimmed for booked services and couple priorities; custom tasks added for follow-ups from discovery.";
+
+        var exclude = new List<string>();
+        if (!string.IsNullOrWhiteSpace(request.ServicesAlreadyBooked))
+        {
+            var booked = request.ServicesAlreadyBooked.ToLowerInvariant();
+            if (booked.Contains("photo")) exclude.Add("Book photographer and videographer");
+            if (booked.Contains("cater")) exclude.Add("Book catering and tasting session");
+            if (booked.Contains("venue")) exclude.Add("Book ceremony and reception venue");
+            if (booked.Contains("flor")) exclude.Add("Book florist and decor stylist");
+        }
+
+        if (request.EstimatedGuestCount is < 80)
+        {
+            exclude.Add("Arrange bachelor and bachelorette events");
+        }
+
+        var additional = new List<ProposedTaskItem>
+        {
+            new(
+                "Confirm cultural ceremony requirements with family",
+                request.CulturalOrReligiousNotes,
+                null,
+                "High"),
+            new(
+                "Share updated vendor shortlist with couple",
+                "Align with must-haves captured in the discovery brief.",
+                DateOnly.FromDateTime(DateTime.UtcNow.AddDays(5)),
+                "Medium"),
+        };
+
+        return new PersonalizedChecklistPlanResult(summary, exclude, additional, IsSimulated: true);
+    }
 }

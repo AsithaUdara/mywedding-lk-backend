@@ -72,7 +72,8 @@ public class AcceptVendorBookingCommandHandler : IRequestHandler<AcceptVendorBoo
             bookingId = booking.Id,
             eventId = booking.EventId,
             status = BookingStatus.AwaitingPayment.ToString(),
-            message = "The vendor accepted your request. Pay the deposit to confirm the booking."
+            action = "awaitContract",
+            message = "The vendor accepted your request. They will send a contract for you to sign before the deposit."
         };
 
         await _notificationService.NotifyBookingConfirmedAsync(
@@ -101,7 +102,7 @@ public class AcceptVendorBookingCommandHandler : IRequestHandler<AcceptVendorBoo
                     bookingId = booking.Id,
                     eventId = booking.EventId,
                     status = BookingStatus.AwaitingPayment.ToString(),
-                    message = "A vendor accepted a booking request — awaiting client deposit."
+                    message = "A vendor accepted a booking request — awaiting contract and client deposit."
                 },
                 cancellationToken);
         }

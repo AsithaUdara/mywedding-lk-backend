@@ -127,6 +127,106 @@ namespace MyWedding.API.Controllers
         /// <summary>
         /// Realigns incomplete template tasks from today forward (fixes overdue schedules for mid-planning weddings).
         /// </summary>
+        [HttpGet("api/events/{eventId:guid}/checklist-preview")]
+        public async Task<IActionResult> GetChecklistPreview(Guid eventId)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var preview = await _mediator.Send(new GetChecklistPlanPreviewQuery
+            {
+                EventId = eventId,
+                UserId = userId
+            });
+
+            return Ok(preview);
+        }
+
+        /// <summary>
+        /// Generates the full wedding planning checklist on the Gantt (after discovery phase).
+        /// </summary>
+        [HttpPost("api/events/{eventId:guid}/tasks/generate-checklist")]
+        public async Task<IActionResult> GenerateFullChecklist(
+            Guid eventId,
+            [FromBody] ApplyChecklistPlanRequest? request)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            if (request?.ExcludeTemplateTitles is { Count: > 0 } || request?.AdditionalTasks is { Count: > 0 })
+            {
+                var personalized = await _mediator.Send(new ApplyPersonalizedChecklistCommand
+                {
+                    EventId = eventId,
+                    UserId = userId,
+                    ExcludeTemplateTitles = request.ExcludeTemplateTitles ?? [],
+                    AdditionalTasks = (request.AdditionalTasks ?? []).Select(t =>
+                        new AdditionalChecklistTask(t.Title, t.Description, t.StartDate, t.DueDate)).ToList(),
+                    MarkBriefComplete = request.MarkBriefComplete
+                });
+
+                return Ok(new
+                {
+                    personalized.Message,
+                    tasksCreated = personalized.TasksCreated,
+                    taskPlanPhase = personalized.TaskPlanPhase
+                });
+            }
+
+            var command = new GenerateTaskTemplateCommand
+            {
+                EventId = eventId,
+                UserId = userId,
+                SkipIfTasksExist = false
+            };
+
+            var tasksCreated = await _mediator.Send(command);
+
+            return Ok(new
+            {
+                message = tasksCreated > 0
+                    ? $"Generated {tasksCreated} planning tasks on your master checklist."
+                    : "Master checklist was already generated for this event.",
+                tasksCreated,
+                taskPlanPhase = "Full"
+            });
+        }
+
+        [HttpPost("api/events/{eventId:guid}/tasks/generate-discovery")]
+        public async Task<IActionResult> GenerateDiscoveryTasks(Guid eventId)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var tasksCreated = await _mediator.Send(new GenerateDiscoveryTasksCommand
+            {
+                EventId = eventId,
+                UserId = userId,
+                SkipIfDiscoveryExists = true
+            });
+
+            return Ok(new
+            {
+                message = tasksCreated > 0
+                    ? $"Generated {tasksCreated} discovery tasks."
+                    : "Discovery tasks already exist for this event.",
+                tasksCreated,
+                taskPlanPhase = "Discovery"
+            });
+        }
+
+        /// <summary>
+        /// Realigns incomplete template tasks from today forward (fixes overdue schedules for mid-planning weddings).
+        /// </summary>
         [HttpPost("api/events/{eventId:guid}/tasks/realign-schedule")]
         public async Task<IActionResult> RealignTaskSchedule(Guid eventId)
         {
@@ -163,4 +263,15 @@ namespace MyWedding.API.Controllers
         DateTime? DueDate,
         Guid? DependsOnTaskId,
         bool UpdateDependency = false);
+
+    public record ApplyChecklistPlanRequest(
+        IReadOnlyList<string>? ExcludeTemplateTitles,
+        IReadOnlyList<AdditionalChecklistTaskRequest>? AdditionalTasks,
+        bool MarkBriefComplete = true);
+
+    public record AdditionalChecklistTaskRequest(
+        string Title,
+        string? Description,
+        DateTime? StartDate,
+        DateTime? DueDate);
 }

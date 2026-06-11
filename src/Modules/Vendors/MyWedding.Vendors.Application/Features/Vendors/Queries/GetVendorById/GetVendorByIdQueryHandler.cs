@@ -48,6 +48,10 @@ namespace MyWedding.Vendors.Application.Features.Vendors.Queries.GetVendorById
             }
 
             var activeServices = VendorMediaHelper.ActiveServices(vendor).ToList();
+            if (activeServices.Count == 0)
+            {
+                throw new NotFoundException(nameof(Vendor), request.VendorId);
+            }
 
             var vendorDetailDto = new VendorDetailDto
             {

@@ -7,6 +7,8 @@ namespace MyWedding.Vendors.Application.Features.Bookings.Queries.GetEventBookin
         Guid BookingId,
         string ServiceName,
         string VendorName,
+        string? VendorUserId,
+        Guid ServiceId,
         decimal FinalAmount,
         BookingStatus Status,
         DateTime ServiceDate

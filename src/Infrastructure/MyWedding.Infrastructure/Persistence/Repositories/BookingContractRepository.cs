@@ -22,4 +22,9 @@ public class BookingContractRepository : IBookingContractRepository
     {
         await _context.BookingContracts.AddAsync(contract, cancellationToken);
     }
+
+    public void Update(BookingContract contract)
+    {
+        _context.BookingContracts.Update(contract);
+    }
 }

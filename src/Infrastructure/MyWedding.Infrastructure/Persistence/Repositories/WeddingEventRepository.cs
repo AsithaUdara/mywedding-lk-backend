@@ -24,6 +24,11 @@ namespace MyWedding.Infrastructure.Persistence.Repositories
             await _context.WeddingEvents.AddAsync(weddingEvent, cancellationToken);
         }
 
+        public void Update(WeddingEvent weddingEvent)
+        {
+            _context.WeddingEvents.Update(weddingEvent);
+        }
+
         public async Task<WeddingEvent?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
             return await _context.WeddingEvents.FindAsync(new object[] { id }, cancellationToken);

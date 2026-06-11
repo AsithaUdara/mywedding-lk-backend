@@ -66,6 +66,8 @@ public class RequestVendorBookingCommandHandler : IRequestHandler<RequestVendorB
         if (vendor is null)
             throw new NotFoundException("Vendor", service.VendorId);
 
+        var weddingEvent = await _eventRepository.GetByIdUnfilteredAsync(item.EventId, cancellationToken);
+
         var now = DateTime.UtcNow;
         Guid bookingId;
 
@@ -112,8 +114,10 @@ public class RequestVendorBookingCommandHandler : IRequestHandler<RequestVendorB
             {
                 bookingId,
                 eventId = item.EventId,
+                eventName = weddingEvent?.EventName ?? "Wedding event",
                 serviceId = item.VendorServiceId,
-                message = "You have a new booking request for this event."
+                serviceName = service.ServiceName,
+                message = $"New booking request for {service.ServiceName} — {weddingEvent?.EventName ?? "a wedding event"}."
             },
             cancellationToken);
 

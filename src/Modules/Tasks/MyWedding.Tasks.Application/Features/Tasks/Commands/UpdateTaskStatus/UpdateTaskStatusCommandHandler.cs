@@ -14,6 +14,7 @@ namespace MyWedding.Tasks.Application.Features.Tasks.Commands.UpdateTaskStatus
     {
         private readonly IEventTaskRepository _taskRepository;
         private readonly IEventOrganizerRepository _organizerRepository;
+        private readonly IWeddingEventRepository _eventRepository;
         private readonly IAuditLogRepository _auditLogRepository;
         private readonly ICollaborationService _collaborationService;
         private readonly IUnitOfWork _unitOfWork;
@@ -21,12 +22,14 @@ namespace MyWedding.Tasks.Application.Features.Tasks.Commands.UpdateTaskStatus
         public UpdateTaskStatusCommandHandler(
             IEventTaskRepository taskRepository,
             IEventOrganizerRepository organizerRepository,
+            IWeddingEventRepository eventRepository,
             IAuditLogRepository auditLogRepository,
             ICollaborationService collaborationService,
             IUnitOfWork unitOfWork)
         {
             _taskRepository = taskRepository;
             _organizerRepository = organizerRepository;
+            _eventRepository = eventRepository;
             _auditLogRepository = auditLogRepository;
             _collaborationService = collaborationService;
             _unitOfWork = unitOfWork;
@@ -43,9 +46,28 @@ namespace MyWedding.Tasks.Application.Features.Tasks.Commands.UpdateTaskStatus
 
             // --- SECURITY CHECK ---
             var organizer = await _organizerRepository.GetOrganizerAsync(task.EventId, request.UserId, cancellationToken);
-            if (organizer == null || organizer.PermissionLevel == MyWedding.Domain.Enums.PermissionLevel.Viewer)
+            var canManageViaOrganizer = organizer != null
+                && organizer.PermissionLevel != MyWedding.Domain.Enums.PermissionLevel.Viewer;
+
+            if (!canManageViaOrganizer)
             {
-                throw new ForbiddenAccessException("You do not have permission to update tasks for this event.");
+                var weddingEvent = await _eventRepository.GetByIdUnfilteredAsync(task.EventId, cancellationToken);
+                if (weddingEvent is null)
+                {
+                    throw new NotFoundException($"Event for task '{request.TaskId}' was not found.");
+                }
+
+                var canManageViaPlanner = weddingEvent.ManagingPlannerId == request.UserId
+                    || weddingEvent.CreatedById == request.UserId
+                    || await _eventRepository.IsManagedByPlannerAsync(
+                        task.EventId,
+                        request.UserId,
+                        cancellationToken);
+
+                if (!canManageViaPlanner)
+                {
+                    throw new ForbiddenAccessException("You do not have permission to update tasks for this event.");
+                }
             }
 
             task.Status = request.NewStatus;

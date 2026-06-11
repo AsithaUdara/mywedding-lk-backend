@@ -4,6 +4,7 @@ using MyWedding.Domain.Enums;
 using MyWedding.Domain.Interfaces;
 using MyWedding.SharedKernel.Exceptions;
 using MyWedding.SharedKernel.Interfaces;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -14,6 +15,7 @@ public class SignBookingContractCommandHandler : IRequestHandler<SignBookingCont
 {
     private readonly IVendorBookingRepository _bookingRepository;
     private readonly IBookingContractRepository _contractRepository;
+    private readonly IVendorShortlistRepository _shortlistRepository;
     private readonly IEventOrganizerRepository _organizerRepository;
     private readonly IWeddingEventRepository _eventRepository;
     private readonly IAuditLogRepository _auditLogRepository;
@@ -23,6 +25,7 @@ public class SignBookingContractCommandHandler : IRequestHandler<SignBookingCont
     public SignBookingContractCommandHandler(
         IVendorBookingRepository bookingRepository,
         IBookingContractRepository contractRepository,
+        IVendorShortlistRepository shortlistRepository,
         IEventOrganizerRepository organizerRepository,
         IWeddingEventRepository eventRepository,
         IAuditLogRepository auditLogRepository,
@@ -31,6 +34,7 @@ public class SignBookingContractCommandHandler : IRequestHandler<SignBookingCont
     {
         _bookingRepository = bookingRepository;
         _contractRepository = contractRepository;
+        _shortlistRepository = shortlistRepository;
         _organizerRepository = organizerRepository;
         _eventRepository = eventRepository;
         _auditLogRepository = auditLogRepository;
@@ -52,9 +56,18 @@ public class SignBookingContractCommandHandler : IRequestHandler<SignBookingCont
             booking.EventId,
             request.UserId,
             cancellationToken);
-        if (organizer is null || organizer.PermissionLevel == PermissionLevel.Viewer)
+        var isBooker = booking.BookedById == request.UserId;
+        if (!isBooker && (organizer is null || organizer.PermissionLevel == PermissionLevel.Viewer))
         {
             throw new ForbiddenAccessException("You do not have permission to sign contracts for this event.");
+        }
+
+        if (booking.Status != BookingStatus.AwaitingPayment && booking.Status != BookingStatus.ContractSigned)
+        {
+            throw new ValidationException(new Dictionary<string, string[]>
+            {
+                ["status"] = ["This booking is not awaiting contract signature."]
+            });
         }
 
         if (string.IsNullOrWhiteSpace(request.SignerName))
@@ -66,30 +79,43 @@ public class SignBookingContractCommandHandler : IRequestHandler<SignBookingCont
         }
 
         var contract = await _contractRepository.GetByBookingIdAsync(booking.Id, cancellationToken);
-        var contractUrl = request.ContractFileUrl
-            ?? contract?.ContractFileUrl
-            ?? $"https://contracts.mywedding.lk/bookings/{booking.Id}/standard.pdf";
-
-        if (contract is null)
+        if (contract is null || string.IsNullOrWhiteSpace(contract.ContractFileUrl))
         {
-            contract = new BookingContract
+            throw new ValidationException(new Dictionary<string, string[]>
             {
-                Id = booking.Id,
-                ContractFileUrl = contractUrl,
-                CreatedAt = DateTime.UtcNow
-            };
-            await _contractRepository.AddAsync(contract, cancellationToken);
+                ["contract"] = ["The vendor must upload a contract before you can sign."]
+            });
         }
-        else if (!string.IsNullOrWhiteSpace(request.ContractFileUrl))
+
+        if (contract.VendorSignedAt is null)
         {
-            contract.ContractFileUrl = request.ContractFileUrl;
+            throw new ValidationException(new Dictionary<string, string[]>
+            {
+                ["contract"] = ["The vendor has not sent this contract yet."]
+            });
         }
+
+        var contractUrl = request.ContractFileUrl
+            ?? contract.ContractFileUrl;
 
         var signedAt = DateTime.UtcNow;
         var pdfHash = ComputePdfHash(booking.Id, contractUrl, request.SignerName, request.UserId, signedAt);
 
         contract.ClientSignedAt = signedAt;
         booking.Status = BookingStatus.ContractSigned;
+
+        var shortlistItems = await _shortlistRepository.GetByEventIdAsync(booking.EventId, cancellationToken);
+        var linkedItem = shortlistItems.FirstOrDefault(i => i.VendorBookingId == booking.Id);
+        if (linkedItem is not null)
+        {
+            var tracked = await _shortlistRepository.GetByIdAsync(linkedItem.Id, cancellationToken);
+            if (tracked is not null)
+            {
+                tracked.Status = VendorShortlistItemStatus.ContractSigned;
+                tracked.UpdatedAt = DateTime.UtcNow;
+                _shortlistRepository.Update(tracked);
+            }
+        }
 
         var metadata = JsonSerializer.Serialize(new
         {
@@ -131,7 +157,19 @@ public class SignBookingContractCommandHandler : IRequestHandler<SignBookingCont
                 eventId = booking.EventId,
                 signerName = request.SignerName.Trim(),
                 signedAtUtc = signedAt,
-                message = "Vendor contract signed successfully."
+                action = "payDeposit",
+                message = "Contract signed. Pay the deposit to confirm your vendor booking."
+            },
+            cancellationToken);
+
+        await _notificationService.NotifyBookingConfirmedAsync(
+            booking.BookedById,
+            new
+            {
+                bookingId = booking.Id,
+                eventId = booking.EventId,
+                action = "payDeposit",
+                message = "Contract signed. Pay the deposit to confirm your vendor booking."
             },
             cancellationToken);
 

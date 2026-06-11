@@ -95,6 +95,18 @@ namespace MyWedding.Infrastructure.Persistence
                 .HasConversion<int>();
 
             modelBuilder.Entity<WeddingEvent>()
+                .Property(e => e.TaskPlanPhase)
+                .HasConversion<int>();
+
+            modelBuilder.Entity<WeddingEvent>()
+                .Property(e => e.WeddingStyle)
+                .HasMaxLength(128);
+
+            modelBuilder.Entity<WeddingEvent>()
+                .Property(e => e.VenuePreference)
+                .HasMaxLength(512);
+
+            modelBuilder.Entity<WeddingEvent>()
                 .HasQueryFilter(e =>
                     !_currentPlannerAccessor.IsPlanner ||
                     (e.ManagingPlannerId != null && e.ManagingPlannerId == _currentPlannerAccessor.PlannerId));

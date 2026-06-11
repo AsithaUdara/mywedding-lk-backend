@@ -10,6 +10,7 @@ namespace MyWedding.Collaboration.Application.Features.AuditLog.Queries.GetAudit
         DateTime TimestampUtc,
         string ActorId,
         string ActorFirstName,
-        string ActorLastName
+        string ActorLastName,
+        string ActorDisplayName
     );
 }

@@ -39,6 +39,7 @@ public class PayHerePaymentGatewayService : IPaymentGatewayService
 
         var booking = await _db.VendorBookings
             .Include(b => b.VendorService)
+                .ThenInclude(s => s!.Vendor)
             .FirstOrDefaultAsync(b => b.Id == request.BookingId, cancellationToken);
 
         if (booking is null)
@@ -171,6 +172,7 @@ public class PayHerePaymentGatewayService : IPaymentGatewayService
 
         var booking = await _db.VendorBookings
             .Include(b => b.VendorService)
+                .ThenInclude(s => s!.Vendor)
             .FirstOrDefaultAsync(b => b.Id == orderId, cancellationToken);
         if (booking is null)
             return new PayHereWebhookProcessResult(false, false, false, "Booking not found.");
@@ -247,8 +249,11 @@ public class PayHerePaymentGatewayService : IPaymentGatewayService
 
     private async Task EnsureDepositExpenseAsync(VendorBooking booking, CancellationToken cancellationToken)
     {
+        var bookingIdText = booking.Id.ToString();
+        var expenseTitle = BuildDepositExpenseTitle(booking);
         var hasExpense = await _db.Expenses.AnyAsync(
-            e => e.EventId == booking.EventId && e.Title == $"Vendor Deposit - {booking.Id}",
+            e => e.EventId == booking.EventId &&
+                 (e.Title == expenseTitle || e.Title.Contains(bookingIdText)),
             cancellationToken);
         if (hasExpense)
             return;
@@ -257,13 +262,26 @@ public class PayHerePaymentGatewayService : IPaymentGatewayService
         {
             Id = Guid.NewGuid(),
             EventId = booking.EventId,
-            Title = $"Vendor Deposit - {booking.Id}",
+            Title = expenseTitle,
             Amount = booking.FinalAmount,
             ExpenseDate = DateTime.UtcNow,
             BudgetCategoryId = OtherBudgetCategoryId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         }, cancellationToken);
+    }
+
+    private static string BuildDepositExpenseTitle(VendorBooking booking)
+    {
+        var serviceName = booking.VendorService?.ServiceName?.Trim();
+        var vendorName = booking.VendorService?.Vendor?.BusinessName?.Trim();
+        var label = string.Join(" - ", new[] { vendorName, serviceName }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        var shortBookingId = booking.Id.ToString("N")[..8];
+
+        if (string.IsNullOrWhiteSpace(label))
+            return $"Vendor deposit ({shortBookingId})";
+
+        return $"Vendor deposit - {label} ({shortBookingId})";
     }
 
     private IReadOnlyDictionary<string, object> BuildCheckoutForm(

@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace MyWedding.API.Controllers
@@ -18,10 +19,12 @@ namespace MyWedding.API.Controllers
             _mediator = mediator;
         }
 
+        private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
         [HttpGet]
         public async Task<IActionResult> GetAuditLog(Guid eventId)
         {
-            var query = new GetAuditLogByEventIdQuery { EventId = eventId };
+            var query = new GetAuditLogByEventIdQuery { EventId = eventId, UserId = GetUserId() };
             var auditItems = await _mediator.Send(query);
             return Ok(auditItems);
         }

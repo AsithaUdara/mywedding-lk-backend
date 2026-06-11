@@ -304,7 +304,8 @@ public class PlannerController : ControllerBase
                 booking.Requested,
                 booking.Confirmed,
                 booking.Completed,
-                (weddingEvent ?? e.WeddingEvent)?.EventLifecycleStage.ToString() ?? EventLifecycleStage.Lead.ToString()
+                (weddingEvent ?? e.WeddingEvent)?.EventLifecycleStage.ToString() ?? EventLifecycleStage.Lead.ToString(),
+                (weddingEvent ?? e.WeddingEvent)?.TaskPlanPhase.ToString() ?? TaskPlanPhase.None.ToString()
             );
         });
 
@@ -658,7 +659,8 @@ public record PlannerEventListItemDto(
     int RequestedBookings,
     int ConfirmedBookings,
     int CompletedBookings,
-    string EventLifecycleStage
+    string EventLifecycleStage,
+    string TaskPlanPhase
 );
 public record PlannerOverviewResponse(
     string PlannerId,

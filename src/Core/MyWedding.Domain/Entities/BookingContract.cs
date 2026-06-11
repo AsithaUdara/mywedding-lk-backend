@@ -9,6 +9,7 @@ namespace MyWedding.Domain.Entities
         public VendorBooking? VendorBooking { get; set; }
 
         public string? ContractFileUrl { get; set; }
+        public byte[]? PdfContent { get; set; }
         public DateTime? ClientSignedAt { get; set; }
         public DateTime? VendorSignedAt { get; set; }
         public DateTime CreatedAt { get; set; }

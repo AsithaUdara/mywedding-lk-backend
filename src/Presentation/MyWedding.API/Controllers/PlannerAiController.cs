@@ -1,3 +1,4 @@
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MyWedding.SharedKernel.Interfaces;
@@ -11,10 +12,12 @@ namespace MyWedding.API.Controllers;
 public class PlannerAiController : ControllerBase
 {
     private readonly IAiCopilotService _aiCopilotService;
+    private readonly IMediator _mediator;
 
-    public PlannerAiController(IAiCopilotService aiCopilotService)
+    public PlannerAiController(IAiCopilotService aiCopilotService, IMediator mediator)
     {
         _aiCopilotService = aiCopilotService;
+        _mediator = mediator;
     }
 
     [HttpPost("draft-inquiry")]
@@ -65,7 +68,30 @@ public class PlannerAiController : ControllerBase
             result.IsSimulated
         });
     }
+
+    [HttpPost("personalize-checklist-plan")]
+    public async Task<IActionResult> PersonalizeChecklistPlan(
+        [FromBody] PersonalizeChecklistPlanRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _mediator.Send(new GeneratePersonalizedChecklistPlanCommand
+        {
+            EventId = request.EventId,
+            UserId = userId,
+            MeetingNotesOrTranscript = request.MeetingNotesOrTranscript
+        });
+
+        return Ok(result);
+    }
 }
+
+public record PersonalizeChecklistPlanRequest(Guid EventId, string? MeetingNotesOrTranscript);
 
 public record DraftInquiryEmailRequest(
     string PlannerName,

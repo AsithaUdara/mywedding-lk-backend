@@ -18,6 +18,13 @@ public interface IAiCopilotService
     Task<MeetingSummaryResult> SummarizeMeetingToTasksAsync(
         MeetingSummaryRequest request,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Uses couple brief + optional meeting notes to tailor the standard master checklist.
+    /// </summary>
+    Task<PersonalizedChecklistPlanResult> GeneratePersonalizedChecklistPlanAsync(
+        PersonalizedChecklistPlanRequest request,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed record InquiryEmailDraftRequest(
@@ -50,4 +57,25 @@ public sealed record ProposedTaskItem(
 public sealed record MeetingSummaryResult(
     string ExecutiveSummary,
     IReadOnlyList<ProposedTaskItem> ProposedTasks,
+    bool IsSimulated);
+
+public sealed record PersonalizedChecklistPlanRequest(
+    Guid EventId,
+    string EventName,
+    DateOnly WeddingDate,
+    int? EstimatedGuestCount,
+    int? GuestCountMax,
+    string? WeddingStyle,
+    string? VenuePreference,
+    string? MustHavesNotes,
+    string? ServicesAlreadyBooked,
+    string? CulturalOrReligiousNotes,
+    decimal? BudgetLkr,
+    string? MeetingNotesOrTranscript,
+    IReadOnlyList<string> StandardTemplateTaskTitles);
+
+public sealed record PersonalizedChecklistPlanResult(
+    string ExecutiveSummary,
+    IReadOnlyList<string> ExcludeTemplateTitles,
+    IReadOnlyList<ProposedTaskItem> AdditionalTasks,
     bool IsSimulated);

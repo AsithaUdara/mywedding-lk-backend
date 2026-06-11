@@ -34,9 +34,16 @@ public class CloudinaryMediaStorage : ICloudinaryMediaStorage
         string publicId,
         CancellationToken cancellationToken = default)
     {
-        await using var stream = new MemoryStream(pdfBytes);
+        if (!IsValidPdf(pdfBytes))
+        {
+            throw new InvalidOperationException("Generated file is not a valid PDF.");
+        }
 
-        var uploadParams = new RawUploadParams
+        await using var stream = new MemoryStream(pdfBytes);
+        stream.Position = 0;
+
+        // Upload PDFs as image resources so browsers can render them reliably.
+        var uploadParams = new ImageUploadParams
         {
             File = new FileDescription($"{publicId}.pdf", stream),
             Folder = folder,
@@ -60,4 +67,11 @@ public class CloudinaryMediaStorage : ICloudinaryMediaStorage
 
         return url;
     }
+
+    private static bool IsValidPdf(byte[] bytes) =>
+        bytes.Length >= 5
+        && bytes[0] == (byte)'%'
+        && bytes[1] == (byte)'P'
+        && bytes[2] == (byte)'D'
+        && bytes[3] == (byte)'F';
 }

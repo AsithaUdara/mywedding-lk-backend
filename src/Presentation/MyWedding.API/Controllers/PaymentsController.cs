@@ -49,6 +49,27 @@ public class PaymentsController : ControllerBase
         if (!hasEventAccess)
             return Forbid();
 
+        var shortlistLinked = await _db.VendorShortlistItems
+            .AnyAsync(i => i.VendorBookingId == bookingId, cancellationToken);
+        if (shortlistLinked)
+        {
+            // Allow retries while booking is AwaitingPayment (set on first checkout attempt).
+            // Block only when the client has not completed e-sign yet.
+            var contractSigned = await _db.BookingContracts
+                .AsNoTracking()
+                .AnyAsync(
+                    c => c.Id == bookingId && c.ClientSignedAt != null,
+                    cancellationToken);
+            if (!contractSigned)
+            {
+                return BadRequest(new
+                {
+                    message = "Please sign the vendor contract before paying the deposit.",
+                    code = "contract_signature_required"
+                });
+            }
+        }
+
         var notifyUrl = _configuration["PayHere:NotifyUrl"]
             ?? $"{Request.Scheme}://{Request.Host}/api/payments/payhere/webhook";
         var frontendBase = (_configuration["Frontend:BaseUrl"] ?? "http://localhost:3000").TrimEnd('/');

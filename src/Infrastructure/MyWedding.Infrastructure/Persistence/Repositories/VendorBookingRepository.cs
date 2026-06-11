@@ -34,6 +34,7 @@ namespace MyWedding.Infrastructure.Persistence.Repositories
                     .ThenInclude(vs => vs!.Vendor)
                 .Include(b => b.WeddingEvent)
                 .Include(b => b.BookedBy)
+                .Include(b => b.BookingContract)
                 .Where(b => b.VendorService != null && b.VendorService.Vendor != null && b.VendorService.Vendor.UserId == vendorUserId)
                 .ToListAsync(cancellationToken);
         }
@@ -52,6 +53,7 @@ namespace MyWedding.Infrastructure.Persistence.Repositories
             return await _context.VendorBookings
                 .Include(b => b.VendorService)
                     .ThenInclude(vs => vs!.Vendor)
+                .Include(b => b.BookingContract)
                 .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
         }
     }

@@ -67,6 +67,12 @@ global using MyWedding.Collaboration.Application.Features.Messages.Queries.GetMe
 global using MyWedding.Collaboration.Application.Features.Messages.Commands.PostMessage;
 global using MyWedding.Tasks.Application.Features.Tasks.Queries.GetTasksByEventId;
 global using MyWedding.Tasks.Application.Features.Tasks.Commands.CreateTask;
+global using MyWedding.Tasks.Application.Features.Tasks.Commands.GenerateDiscoveryTasks;
+global using MyWedding.Tasks.Application.Features.Tasks.Commands.GenerateTaskTemplate;
+global using MyWedding.Tasks.Application.Features.Tasks.Commands.ApplyPersonalizedChecklist;
+global using MyWedding.Tasks.Application.Features.Tasks.Commands.GeneratePersonalizedChecklistPlan;
+global using MyWedding.Tasks.Application.Features.Tasks.Queries.GetChecklistPlanPreview;
+global using MyWedding.Tasks.Application.Templates;
 global using MyWedding.Tasks.Application.Features.Tasks.Commands.UpdateTaskStatus;
 global using MyWedding.Tasks.Application.Features.Tasks.Commands.UpdateTaskSchedule;
 global using MyWedding.Tasks.Application.Features.Tasks.Commands.RealignEventTaskSchedule;
