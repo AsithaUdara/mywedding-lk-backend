@@ -395,14 +395,17 @@ public class PlannerController : ControllerBase
             EventDate = request.EventDate,
             TotalBudget = request.TotalBudget,
             ClientUserId = request.ClientUserId,
-            ClientEmail = request.ClientEmail
+            ClientEmail = request.ClientEmail,
+            TaskSeedMode = request.TaskSeedMode,
+            CustomTemplateId = request.CustomTemplateId
         }, cancellationToken);
 
         return Ok(new
         {
             eventId = result.EventId,
             plannerClientEventId = result.PlannerClientEventId,
-            tasksGenerated = result.TasksGenerated
+            tasksGenerated = result.TasksGenerated,
+            taskSeedMode = request.TaskSeedMode.ToString()
         });
     }
 
@@ -626,7 +629,14 @@ public class PlannerController : ControllerBase
 }
 
 public record PlannerSignupRequest(string BusinessName, string? BusinessDescription, string? ContactPhone, string? City);
-public record CreatePlannerEventRequest(string EventName, DateTime EventDate, decimal TotalBudget, string? ClientUserId, string? ClientEmail);
+public record CreatePlannerEventRequest(
+    string EventName,
+    DateTime EventDate,
+    decimal TotalBudget,
+    string? ClientUserId,
+    string? ClientEmail,
+    EventTaskSeedMode TaskSeedMode = EventTaskSeedMode.DiscoveryStarter,
+    Guid? CustomTemplateId = null);
 public record AssignPlannerClientRequest(string? ClientUserId, string? ClientEmail);
 public record UpdatePlannerSubscriptionRequest(SubscriptionPlanTier Tier, decimal MonthlyFee);
 public record UpdatePlannerProfileRequest(string BusinessName, string? BusinessDescription, string? ContactPhone, string? City);

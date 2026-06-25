@@ -30,6 +30,10 @@ namespace MyWedding.Infrastructure.Persistence.Repositories
         {
             return await _context.EventTasks
                 .Where(t => t.EventId == eventId)
+                .OrderBy(t => t.StartDate ?? DateTime.MaxValue)
+                .ThenBy(t => t.DueDate ?? DateTime.MaxValue)
+                .ThenBy(t => t.CreatedAt)
+                .ThenBy(t => t.Title)
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);
         }

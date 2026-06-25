@@ -47,6 +47,9 @@ namespace MyWedding.Infrastructure.Persistence
         public DbSet<EventItinerary> EventItineraries { get; set; }
         public DbSet<EventItineraryItem> EventItineraryItems { get; set; }
         
+        public DbSet<PlannerTaskTemplate> PlannerTaskTemplates { get; set; }
+        public DbSet<PlannerTaskTemplateItem> PlannerTaskTemplateItems { get; set; }
+        
         public DbSet<AuditLogItem> AuditLogItems { get; set; }
         
         // Collaboration Hub DbSets
@@ -455,6 +458,43 @@ namespace MyWedding.Infrastructure.Persistence
             modelBuilder.Entity<VendorShortlistItem>()
                 .Property(s => s.ProposedAmount)
                 .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<PlannerTaskTemplate>()
+                .Property(t => t.Name)
+                .HasMaxLength(200);
+
+            modelBuilder.Entity<PlannerTaskTemplate>()
+                .Property(t => t.Description)
+                .HasMaxLength(500);
+
+            modelBuilder.Entity<PlannerTaskTemplateItem>()
+                .Property(i => i.Title)
+                .HasMaxLength(300);
+
+            modelBuilder.Entity<PlannerTaskTemplate>()
+                .HasOne(t => t.Planner)
+                .WithMany()
+                .HasForeignKey(t => t.PlannerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PlannerTaskTemplate>()
+                .HasOne(t => t.SourceEvent)
+                .WithMany()
+                .HasForeignKey(t => t.SourceEventId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<PlannerTaskTemplate>()
+                .HasIndex(t => new { t.PlannerId, t.Name });
+
+            modelBuilder.Entity<PlannerTaskTemplateItem>()
+                .HasOne(i => i.Template)
+                .WithMany(t => t.Items)
+                .HasForeignKey(i => i.TemplateId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PlannerTaskTemplateItem>()
+                .HasIndex(i => new { i.TemplateId, i.SortOrder })
+                .IsUnique();
 
             modelBuilder.Entity<AuditLogItem>()
                 .HasOne(i => i.WeddingEvent)

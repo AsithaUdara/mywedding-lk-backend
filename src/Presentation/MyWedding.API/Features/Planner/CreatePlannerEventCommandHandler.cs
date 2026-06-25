@@ -4,7 +4,9 @@ using MyWedding.Domain.Entities;
 using MyWedding.Domain.Enums;
 using MyWedding.Infrastructure.Persistence;
 using MyWedding.SharedKernel.Exceptions;
+using MyWedding.API.Features.Planner.TaskTemplates;
 using MyWedding.Tasks.Application.Features.Tasks.Commands.GenerateDiscoveryTasks;
+using MyWedding.Tasks.Application.Features.Tasks.Commands.GenerateTaskTemplate;
 
 namespace MyWedding.API.Features.Planner;
 
@@ -88,14 +90,41 @@ public class CreatePlannerEventCommandHandler : IRequestHandler<CreatePlannerEve
         await _db.PlannerClientEvents.AddAsync(plannerClientEvent, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
 
-        var tasksGenerated = await _mediator.Send(
-            new GenerateDiscoveryTasksCommand
+        var tasksGenerated = request.TaskSeedMode switch
+        {
+            EventTaskSeedMode.Manual => 0,
+            EventTaskSeedMode.DiscoveryStarter => await _mediator.Send(
+                new GenerateDiscoveryTasksCommand
+                {
+                    EventId = weddingEvent.Id,
+                    UserId = request.PlannerId,
+                    SkipIfDiscoveryExists = false
+                },
+                cancellationToken),
+            EventTaskSeedMode.MasterChecklist => await _mediator.Send(
+                new GenerateTaskTemplateCommand
+                {
+                    EventId = weddingEvent.Id,
+                    UserId = request.PlannerId,
+                    SkipIfTasksExist = false
+                },
+                cancellationToken),
+            EventTaskSeedMode.CustomTemplate when request.CustomTemplateId.HasValue => (
+                await _mediator.Send(
+                    new ApplyPlannerTaskTemplateCommand
+                    {
+                        PlannerId = request.PlannerId,
+                        EventId = weddingEvent.Id,
+                        TemplateId = request.CustomTemplateId.Value,
+                        ReplaceExisting = true
+                    },
+                    cancellationToken)).TasksCreated,
+            EventTaskSeedMode.CustomTemplate => throw new ValidationException(new Dictionary<string, string[]>
             {
-                EventId = weddingEvent.Id,
-                UserId = request.PlannerId,
-                SkipIfDiscoveryExists = false
-            },
-            cancellationToken);
+                ["customTemplateId"] = ["Select a custom template to use this option."]
+            }),
+            _ => 0
+        };
 
         return new CreatePlannerEventResult(
             weddingEvent.Id,

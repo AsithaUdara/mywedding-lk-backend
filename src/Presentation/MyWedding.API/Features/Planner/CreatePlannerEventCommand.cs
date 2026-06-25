@@ -11,6 +11,8 @@ public class CreatePlannerEventCommand : IRequest<CreatePlannerEventResult>, IPl
     public decimal TotalBudget { get; init; }
     public string? ClientUserId { get; init; }
     public string? ClientEmail { get; init; }
+    public EventTaskSeedMode TaskSeedMode { get; init; } = EventTaskSeedMode.DiscoveryStarter;
+    public Guid? CustomTemplateId { get; init; }
 }
 
 public record CreatePlannerEventResult(Guid EventId, Guid PlannerClientEventId, int TasksGenerated);

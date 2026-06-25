@@ -94,6 +94,82 @@ namespace MyWedding.API.Controllers
         }
 
         /// <summary>
+        /// Assigns or clears the owner of a task (must be an event team member).
+        /// </summary>
+        [HttpPut("api/tasks/{taskId:guid}/assign")]
+        public async Task<IActionResult> AssignTask(Guid taskId, [FromBody] AssignTaskRequest request)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            await _mediator.Send(new AssignTaskCommand
+            {
+                TaskId = taskId,
+                AssignedToUserId = request.AssignedToUserId,
+                UserId = userId
+            });
+
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Updates task details (title, dates, status, dependency).
+        /// </summary>
+        [HttpPut("api/events/{eventId:guid}/tasks/{taskId:guid}")]
+        public async Task<IActionResult> UpdateTask(
+            Guid eventId,
+            Guid taskId,
+            [FromBody] UpdateTaskRequest request)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            await _mediator.Send(new UpdateTaskCommand
+            {
+                EventId = eventId,
+                TaskId = taskId,
+                Title = request.Title,
+                Description = request.Description,
+                Status = request.Status,
+                StartDate = request.StartDate,
+                DueDate = request.DueDate,
+                DependsOnTaskId = request.DependsOnTaskId,
+                UpdateDependency = request.UpdateDependency,
+                UserId = userId
+            });
+
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Deletes a task from the event checklist.
+        /// </summary>
+        [HttpDelete("api/events/{eventId:guid}/tasks/{taskId:guid}")]
+        public async Task<IActionResult> DeleteTask(Guid eventId, Guid taskId)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            await _mediator.Send(new DeleteTaskCommand
+            {
+                EventId = eventId,
+                TaskId = taskId,
+                UserId = userId
+            });
+
+            return NoContent();
+        }
+
+        /// <summary>
         /// Updates task schedule fields (Gantt drag-and-drop).
         /// </summary>
         [HttpPatch("api/events/{eventId:guid}/tasks/{taskId:guid}")]
@@ -256,6 +332,19 @@ namespace MyWedding.API.Controllers
 
     /// <summary>Request DTO for updating a task's status.</summary>
     public record UpdateTaskStatusRequest(MyWedding.Domain.Enums.TaskStatus NewStatus);
+
+    /// <summary>Request DTO for assigning a task to an event team member.</summary>
+    public record AssignTaskRequest(string? AssignedToUserId);
+
+    /// <summary>Request DTO for updating task details.</summary>
+    public record UpdateTaskRequest(
+        string Title,
+        string? Description,
+        MyWedding.Domain.Enums.TaskStatus? Status,
+        DateTime? StartDate,
+        DateTime? DueDate,
+        Guid? DependsOnTaskId,
+        bool UpdateDependency = false);
 
     /// <summary>Request DTO for updating task schedule (Gantt).</summary>
     public record UpdateTaskScheduleRequest(

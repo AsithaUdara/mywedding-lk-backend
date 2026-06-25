@@ -74,8 +74,11 @@ global using MyWedding.Tasks.Application.Features.Tasks.Commands.GeneratePersona
 global using MyWedding.Tasks.Application.Features.Tasks.Queries.GetChecklistPlanPreview;
 global using MyWedding.Tasks.Application.Templates;
 global using MyWedding.Tasks.Application.Features.Tasks.Commands.UpdateTaskStatus;
+global using MyWedding.Tasks.Application.Features.Tasks.Commands.AssignTask;
 global using MyWedding.Tasks.Application.Features.Tasks.Commands.UpdateTaskSchedule;
 global using MyWedding.Tasks.Application.Features.Tasks.Commands.RealignEventTaskSchedule;
+global using MyWedding.Tasks.Application.Features.Tasks.Commands.UpdateTask;
+global using MyWedding.Tasks.Application.Features.Tasks.Commands.DeleteTask;
 global using MyWedding.Vendors.Application.Features.Bookings.Queries.GetVendorBookings;
 global using MyWedding.Vendors.Application.Features.Bookings.Queries.GetEventBookings;
 global using MyWedding.Vendors.Application.Features.Bookings.Commands.UpdateBookingStatus;

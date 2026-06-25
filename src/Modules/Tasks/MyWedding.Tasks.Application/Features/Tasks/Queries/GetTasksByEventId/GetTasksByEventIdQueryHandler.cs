@@ -17,15 +17,18 @@ namespace MyWedding.Tasks.Application.Features.Tasks.Queries.GetTasksByEventId
         private readonly IWeddingEventRepository _eventRepository;
         private readonly IEventOrganizerRepository _organizerRepository;
         private readonly IEventTaskRepository _taskRepository;
+        private readonly IUserRepository _userRepository;
 
         public GetTasksByEventIdQueryHandler(
             IWeddingEventRepository eventRepository,
             IEventOrganizerRepository organizerRepository,
-            IEventTaskRepository taskRepository)
+            IEventTaskRepository taskRepository,
+            IUserRepository userRepository)
         {
             _eventRepository = eventRepository;
             _organizerRepository = organizerRepository;
             _taskRepository = taskRepository;
+            _userRepository = userRepository;
         }
 
         public async Task<IEnumerable<TaskDto>> Handle(GetTasksByEventIdQuery request, CancellationToken cancellationToken)
@@ -71,6 +74,21 @@ namespace MyWedding.Tasks.Application.Features.Tasks.Queries.GetTasksByEventId
                 }
             }
 
+            var assigneeIds = tasks
+                .Where(t => !string.IsNullOrWhiteSpace(t.AssignedToUserId))
+                .Select(t => t.AssignedToUserId!)
+                .Distinct()
+                .ToList();
+
+            var assigneeNames = new Dictionary<string, string>();
+            foreach (var assigneeId in assigneeIds)
+            {
+                var user = await _userRepository.GetByIdAsync(assigneeId, cancellationToken);
+                if (user is null) continue;
+                var name = $"{user.FirstName} {user.LastName}".Trim();
+                assigneeNames[assigneeId] = string.IsNullOrWhiteSpace(name) ? user.Email : name;
+            }
+
             return tasks.Select(task => new TaskDto(
                 task.Id,
                 task.Title,
@@ -80,6 +98,9 @@ namespace MyWedding.Tasks.Application.Features.Tasks.Queries.GetTasksByEventId
                 task.DueDate,
                 task.DependsOnTaskId,
                 task.AssignedToUserId,
+                task.AssignedToUserId != null && assigneeNames.TryGetValue(task.AssignedToUserId, out var assigneeName)
+                    ? assigneeName
+                    : null,
                 task.CreatedAt
             ));
         }
