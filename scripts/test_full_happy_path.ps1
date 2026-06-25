@@ -2,7 +2,7 @@
 $ErrorActionPreference = "Continue"
 $BaseUrl = "http://localhost:5141"
 $ApiKey = "AIzaSyAu-Z0ZUAR2fQsLspGkmBbmhEEWrjsLtdc"
-$Cred = "c:\Users\ASUS\Desktop\MyWeddingLK\backend\src\Presentation\MyWedding.API\firebase-credentials.json"
+$Cred = "c:\Users\ASUS\Desktop\MyWeddingLK\backend\Presentation\MyWedding.API\firebase-credentials.json"
 $EventId = "49334c6e-c1b3-4627-8f7a-9bc2ffd68c8a"
 $Report = @()
 

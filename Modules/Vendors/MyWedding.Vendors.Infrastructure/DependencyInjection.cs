@@ -1,0 +1,27 @@
+using Microsoft.Extensions.DependencyInjection;
+using MyWedding.Domain.Interfaces;
+using MyWedding.Infrastructure.Persistence.Repositories;
+using MyWedding.Vendors.Infrastructure.Persistence.Repositories;
+
+namespace MyWedding.Vendors.Infrastructure
+{
+    public static class DependencyInjection
+    {
+        public static IServiceCollection AddVendorsModule(this IServiceCollection services)
+        {
+            services.AddScoped<IVendorRepository, VendorRepository>();
+            services.AddScoped<IVendorServiceRepository, VendorServiceRepository>();
+            services.AddScoped<IVendorBookingRepository, VendorBookingRepository>();
+            services.AddScoped<IVendorCategoryRepository, VendorCategoryRepository>();
+            services.AddScoped<IVendorSubscriptionRepository, VendorSubscriptionRepository>();
+            services.AddScoped<IVendorInquiryRepository, VendorInquiryRepository>();
+            services.AddScoped<IVendorInquiryQuoteRepository, VendorInquiryQuoteRepository>();
+            services.AddScoped<IVendorBlockedDateRepository, VendorBlockedDateRepository>();
+            services.AddScoped<IVendorProfileViewRepository, VendorProfileViewRepository>();
+            services.AddScoped<IVendorAnalyticsRepository, VendorAnalyticsRepository>();
+            services.AddScoped<IBookingContractRepository, BookingContractRepository>();
+            services.AddScoped<IVendorShortlistRepository, VendorShortlistRepository>();
+            return services;
+        }
+    }
+}

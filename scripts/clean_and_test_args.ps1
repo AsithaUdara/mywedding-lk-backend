@@ -67,7 +67,7 @@ function Invoke-Json { param([string]$Method,[string]$Url,[hashtable]$Headers,[o
 }
 
 $SolutionPath = "c:\Users\ASUS\Desktop\MyWeddingLK\backend\MyWedding.sln"
-$ApiDir = "c:\Users\ASUS\Desktop\MyWeddingLK\backend\src\Presentation\MyWedding.API"
+$ApiDir = "c:\Users\ASUS\Desktop\MyWeddingLK\backend\Presentation\MyWedding.API"
 if (-not $BaseUrl) { $BaseUrl = Get-ApiUrl -ApiProjectDir $ApiDir }
 
 Write-Host "Stopping any running API processes..." -ForegroundColor Cyan

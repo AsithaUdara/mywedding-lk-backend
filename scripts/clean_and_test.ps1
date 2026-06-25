@@ -102,7 +102,7 @@ function Invoke-Api {
 
 # Paths
 $SolutionPath = "c:\Users\ASUS\Desktop\MyWeddingLK\backend\MyWedding.sln"
-$ApiDir = "c:\Users\ASUS\Desktop\MyWeddingLK\backend\src\Presentation\MyWedding.API"
+$ApiDir = "c:\Users\ASUS\Desktop\MyWeddingLK\backend\Presentation\MyWedding.API"
 $BaseUrl = Get-ApiUrl -ApiProjectDir $ApiDir
 
 Write-Host "Building solution..." -ForegroundColor Cyan
