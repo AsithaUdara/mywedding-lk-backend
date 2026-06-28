@@ -1,9 +1,13 @@
 using MediatR;
+using MyWedding.Domain.ReadModels;
 
 namespace MyWedding.Vendors.Application.Features.Admin.Queries.GetPayoutDueCommissions;
 
-public class GetPayoutDueCommissionsQuery : IRequest<IEnumerable<PayoutDueCommissionDto>>
+public class GetPayoutDueCommissionsQuery : IRequest<PagedResult<PayoutDueCommissionDto>>
 {
+    public string? Search { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
 }
 
 public class PayoutDueCommissionDto

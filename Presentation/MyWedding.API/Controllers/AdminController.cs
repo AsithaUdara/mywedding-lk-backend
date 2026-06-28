@@ -7,6 +7,7 @@ using MyWedding.Vendors.Application.Features.Admin.Commands.SetAdminVendorSubscr
 using MyWedding.Vendors.Application.Features.Admin.Commands.VerifyVendor;
 using MyWedding.Vendors.Application.Features.Admin.Queries.GetAdminVendorSummary;
 using MyWedding.Vendors.Application.Features.Admin.Queries.GetAdminVendors;
+using MyWedding.Vendors.Application.Features.Admin.Queries.GetPayoutDueSummary;
 using MyWedding.Vendors.Application.Features.Admin.Queries.GetPayoutDueCommissions;
 using MyWedding.Vendors.Application.Features.Admin.Queries.GetPendingVendors;
 using MyWedding.Vendors.Application.Features.Admin.Queries.GetPlatformAnalytics;
@@ -123,12 +124,30 @@ namespace MyWedding.API.Controllers
             return Ok(result);
         }
 
-        [HttpGet("commissions/payout-due")]
-        public async Task<IActionResult> GetPayoutDue(CancellationToken cancellationToken)
+        [HttpGet("commissions/payout-due/summary")]
+        public async Task<IActionResult> GetPayoutDueSummary(CancellationToken cancellationToken)
         {
             if (!IsAdmin()) return Forbid();
 
-            var items = await _mediator.Send(new GetPayoutDueCommissionsQuery(), cancellationToken);
+            var summary = await _mediator.Send(new GetPayoutDueSummaryQuery(), cancellationToken);
+            return Ok(summary);
+        }
+
+        [HttpGet("commissions/payout-due")]
+        public async Task<IActionResult> GetPayoutDue(
+            [FromQuery] string? search,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            CancellationToken cancellationToken = default)
+        {
+            if (!IsAdmin()) return Forbid();
+
+            var items = await _mediator.Send(new GetPayoutDueCommissionsQuery
+            {
+                Search = search,
+                Page = page,
+                PageSize = pageSize,
+            }, cancellationToken);
             return Ok(items);
         }
 

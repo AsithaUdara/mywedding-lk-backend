@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MyWedding.Domain.Entities;
 using MyWedding.Domain.Interfaces;
+using MyWedding.Domain.ReadModels;
 
 namespace MyWedding.Infrastructure.Persistence.Repositories;
 
@@ -13,13 +14,43 @@ public class CommissionSettlementRepository : ICommissionSettlementRepository
         _context = context;
     }
 
-    public async Task<IReadOnlyList<PayoutDueCommissionRecord>> GetPayoutDueAsync(
+    private IQueryable<CommissionSettlement> UnsettledQuery()
+    {
+        return _context.CommissionSettlements
+            .AsNoTracking()
+            .Where(c => !c.IsVendorPayoutSettled);
+    }
+
+    private static IQueryable<CommissionSettlement> ApplySearch(
+        IQueryable<CommissionSettlement> query,
+        string? search)
+    {
+        if (string.IsNullOrWhiteSpace(search))
+        {
+            return query;
+        }
+
+        var term = search.Trim().ToLower();
+        return query.Where(c =>
+            c.BookingId.ToString().ToLower().Contains(term) ||
+            c.Id.ToString().ToLower().Contains(term) ||
+            (c.Booking != null && c.Booking.EventId.ToString().ToLower().Contains(term)) ||
+            (c.Booking != null && c.Booking.ServiceId.ToString().ToLower().Contains(term)));
+    }
+
+    public async Task<PagedResult<PayoutDueCommissionRecord>> GetPayoutDuePagedAsync(
+        string? search,
+        int page,
+        int pageSize,
         CancellationToken cancellationToken = default)
     {
-        var rows = await _context.CommissionSettlements
-            .AsNoTracking()
-            .Where(c => !c.IsVendorPayoutSettled)
-            .OrderByDescending(c => c.CreatedAt)
+        var query = ApplySearch(UnsettledQuery(), search)
+            .OrderByDescending(c => c.CreatedAt);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var rows = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(c => new
             {
                 c.Id,
@@ -33,7 +64,7 @@ public class CommissionSettlementRepository : ICommissionSettlementRepository
             })
             .ToListAsync(cancellationToken);
 
-        return rows
+        var items = rows
             .Select(r => new PayoutDueCommissionRecord(
                 r.Id,
                 r.BookingId,
@@ -44,6 +75,30 @@ public class CommissionSettlementRepository : ICommissionSettlementRepository
                 r.ServiceId,
                 r.EventId))
             .ToList();
+
+        return new PagedResult<PayoutDueCommissionRecord>
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+        };
+    }
+
+    public async Task<PayoutDueSummary> GetPayoutDueSummaryAsync(CancellationToken cancellationToken = default)
+    {
+        var aggregate = await UnsettledQuery()
+            .GroupBy(_ => 1)
+            .Select(g => new PayoutDueSummary
+            {
+                Count = g.Count(),
+                TotalGross = g.Sum(x => x.GrossAmount),
+                TotalCommission = g.Sum(x => x.CommissionAmount),
+                TotalVendorNet = g.Sum(x => x.VendorNetAmount),
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return aggregate ?? new PayoutDueSummary();
     }
 
     public async Task<CommissionSettlement?> GetByIdAsync(

@@ -1,11 +1,17 @@
 using MyWedding.Domain.Entities;
+using MyWedding.Domain.ReadModels;
 
 namespace MyWedding.Domain.Interfaces;
 
 public interface ICommissionSettlementRepository
 {
-    Task<IReadOnlyList<PayoutDueCommissionRecord>> GetPayoutDueAsync(
+    Task<PagedResult<PayoutDueCommissionRecord>> GetPayoutDuePagedAsync(
+        string? search,
+        int page,
+        int pageSize,
         CancellationToken cancellationToken = default);
+
+    Task<PayoutDueSummary> GetPayoutDueSummaryAsync(CancellationToken cancellationToken = default);
 
     Task<CommissionSettlement?> GetByIdAsync(
         Guid settlementId,
