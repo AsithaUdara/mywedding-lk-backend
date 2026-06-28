@@ -5,6 +5,7 @@ using MyWedding.Domain.Enums;
 using MyWedding.Vendors.Application.Features.Admin.Commands.MarkCommissionSettlementPaid;
 using MyWedding.Vendors.Application.Features.Admin.Commands.SetAdminVendorSubscription;
 using MyWedding.Vendors.Application.Features.Admin.Commands.VerifyVendor;
+using MyWedding.Vendors.Application.Features.Admin.Queries.GetAdminVendorSummary;
 using MyWedding.Vendors.Application.Features.Admin.Queries.GetAdminVendors;
 using MyWedding.Vendors.Application.Features.Admin.Queries.GetPayoutDueCommissions;
 using MyWedding.Vendors.Application.Features.Admin.Queries.GetPendingVendors;
@@ -43,15 +44,34 @@ namespace MyWedding.API.Controllers
             return Ok(result);
         }
 
-        /// <summary>Lists all vendors with optional verification status filter.</summary>
-        [HttpGet("vendors")]
-        public async Task<IActionResult> GetAdminVendors(
-            [FromQuery] VerificationStatus? status,
-            CancellationToken cancellationToken)
+        /// <summary>Portfolio-wide vendor counts for the admin directory.</summary>
+        [HttpGet("vendors/summary")]
+        public async Task<IActionResult> GetAdminVendorSummary(CancellationToken cancellationToken)
         {
             if (!IsAdmin()) return Forbid();
 
-            var vendors = await _mediator.Send(new GetAdminVendorsQuery { Status = status }, cancellationToken);
+            var summary = await _mediator.Send(new GetAdminVendorSummaryQuery(), cancellationToken);
+            return Ok(summary);
+        }
+
+        /// <summary>Lists vendors with optional status filter, search, and pagination.</summary>
+        [HttpGet("vendors")]
+        public async Task<IActionResult> GetAdminVendors(
+            [FromQuery] VerificationStatus? status,
+            [FromQuery] string? search,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            CancellationToken cancellationToken = default)
+        {
+            if (!IsAdmin()) return Forbid();
+
+            var vendors = await _mediator.Send(new GetAdminVendorsQuery
+            {
+                Status = status,
+                Search = search,
+                Page = page,
+                PageSize = pageSize,
+            }, cancellationToken);
             return Ok(vendors);
         }
 

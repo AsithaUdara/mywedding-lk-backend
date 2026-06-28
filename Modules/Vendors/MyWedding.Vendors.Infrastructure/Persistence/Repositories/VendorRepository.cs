@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 
 
+using MyWedding.Domain.ReadModels;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -55,8 +57,11 @@ namespace MyWedding.Vendors.Infrastructure.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<IEnumerable<Vendor>> GetAdminVendorsAsync(
-            MyWedding.Domain.Enums.VerificationStatus? status = null,
+        public async Task<PagedResult<Vendor>> GetAdminVendorsPagedAsync(
+            MyWedding.Domain.Enums.VerificationStatus? status,
+            string? search,
+            int page,
+            int pageSize,
             CancellationToken cancellationToken = default)
         {
             IQueryable<Vendor> query = _context.Vendors
@@ -70,10 +75,73 @@ namespace MyWedding.Vendors.Infrastructure.Persistence.Repositories
                 query = query.Where(v => v.VerificationStatus == status.Value);
             }
 
-            return await query
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                query = query.Where(v =>
+                    v.BusinessName.ToLower().Contains(term) ||
+                    v.UserId.ToLower().Contains(term) ||
+                    (v.City != null && v.City.ToLower().Contains(term)) ||
+                    (v.BusinessDescription != null && v.BusinessDescription.ToLower().Contains(term)) ||
+                    (v.User != null && v.User.Email != null && v.User.Email.ToLower().Contains(term)) ||
+                    (v.User != null && (
+                        v.User.FirstName.ToLower().Contains(term) ||
+                        v.User.LastName.ToLower().Contains(term))) ||
+                    (v.PrimaryCategory != null && v.PrimaryCategory.Name.ToLower().Contains(term)));
+            }
+
+            query = query
                 .OrderByDescending(v => v.User != null ? v.User.CreatedAt : DateTime.MinValue)
-                .ThenBy(v => v.BusinessName)
+                .ThenBy(v => v.BusinessName);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync(cancellationToken);
+
+            return new PagedResult<Vendor>
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+            };
+        }
+
+        public async Task<AdminVendorSummary> GetAdminVendorSummaryAsync(CancellationToken cancellationToken = default)
+        {
+            var vendors = _context.Vendors.AsNoTracking();
+
+            var total = await vendors.CountAsync(cancellationToken);
+            var verified = await vendors.CountAsync(
+                v => v.VerificationStatus == MyWedding.Domain.Enums.VerificationStatus.Verified,
+                cancellationToken);
+            var pending = await vendors.CountAsync(
+                v => v.VerificationStatus == MyWedding.Domain.Enums.VerificationStatus.Pending,
+                cancellationToken);
+            var rejected = await vendors.CountAsync(
+                v => v.VerificationStatus == MyWedding.Domain.Enums.VerificationStatus.Rejected,
+                cancellationToken);
+            var liveListings = await vendors.CountAsync(
+                v => v.VerificationStatus == MyWedding.Domain.Enums.VerificationStatus.Verified &&
+                     v.Services.Any(s => s.IsActive),
+                cancellationToken);
+            var categories = await vendors
+                .Where(v => v.PrimaryCategoryId != null)
+                .Select(v => v.PrimaryCategoryId)
+                .Distinct()
+                .CountAsync(cancellationToken);
+
+            return new AdminVendorSummary
+            {
+                Total = total,
+                Verified = verified,
+                Pending = pending,
+                Rejected = rejected,
+                LiveListings = liveListings,
+                Categories = categories,
+            };
         }
 
         public async Task AddAsync(Vendor vendor, CancellationToken cancellationToken = default)
