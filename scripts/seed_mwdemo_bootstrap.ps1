@@ -2,12 +2,16 @@
 # Requires: API at http://localhost:5141
 param(
     [string]$BaseUrl = "http://localhost:5141",
-    [string]$ApiKey = "AIzaSyAu-Z0ZUAR2fQsLspGkmBbmhEEWrjsLtdc",
+    [string]$ApiKey = $env:FIREBASE_WEB_API_KEY,
     [string]$BootstrapSecret = "mywedding-local-bootstrap-dev-only",
     [string]$AdminEmail = "admin@mw.com",
     [string]$AdminPassword = "admin@mw.com",
     [string]$ExpectedAdminUid = "zHvTgDy7CZVDYtyUTHNatugwwg82"
 )
+
+if (-not $ApiKey) {
+    throw "Set FIREBASE_WEB_API_KEY or pass -ApiKey (Firebase Web API key)."
+}
 
 $ErrorActionPreference = "Stop"
 

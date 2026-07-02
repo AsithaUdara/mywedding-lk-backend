@@ -3,7 +3,10 @@
 $ErrorActionPreference = "Stop"
 
 $BaseUrl = "http://localhost:5141"
-$ApiKey = "AIzaSyAu-Z0ZUAR2fQsLspGkmBbmhEEWrjsLtdc"
+$ApiKey = $env:FIREBASE_WEB_API_KEY
+if (-not $ApiKey) {
+    throw "Set FIREBASE_WEB_API_KEY (Firebase Web API key) before running this script."
+}
 $BootstrapSecret = "mywedding-local-bootstrap-dev-only"
 $Img = "https://images.unsplash.com/photo-1519741497674-611481863552?w=800&q=80"
 

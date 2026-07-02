@@ -1,7 +1,10 @@
 # Completes seed after partial run (expenses, shortlist, second event, Pro tier).
 $ErrorActionPreference = "Stop"
 $BaseUrl = "http://localhost:5141"
-$ApiKey = "AIzaSyAu-Z0ZUAR2fQsLspGkmBbmhEEWrjsLtdc"
+$ApiKey = $env:FIREBASE_WEB_API_KEY
+if (-not $ApiKey) {
+    throw "Set FIREBASE_WEB_API_KEY (Firebase Web API key) before running this script."
+}
 
 function Get-Token($email, $password) {
     $r = Invoke-RestMethod -Method Post -Uri "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$ApiKey" `
