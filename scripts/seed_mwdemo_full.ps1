@@ -2,12 +2,16 @@
 # Prerequisite: API running + seed_mwdemo_bootstrap.ps1 completed.
 param(
     [string]$BaseUrl = "http://localhost:5141",
-    [string]$ApiKey = "AIzaSyAu-Z0ZUAR2fQsLspGkmBbmhEEWrjsLtdc",
+    [string]$ApiKey = $env:FIREBASE_WEB_API_KEY,
     [string]$BootstrapSecret = "mywedding-local-bootstrap-dev-only",
     [string]$SqlServer = "DESKTOP-SD2ALLO\SQLEXPRESS",
     [string]$Database = "MyWeddingDbDemo",
     [switch]$Reset
 )
+
+if (-not $ApiKey) {
+    throw "Set FIREBASE_WEB_API_KEY or pass -ApiKey (Firebase Web API key)."
+}
 
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path

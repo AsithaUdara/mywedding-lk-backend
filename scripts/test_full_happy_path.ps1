@@ -1,7 +1,10 @@
 # Full happy-path E2E API test - reports pass/fail per step
 $ErrorActionPreference = "Continue"
 $BaseUrl = "http://localhost:5141"
-$ApiKey = "AIzaSyAu-Z0ZUAR2fQsLspGkmBbmhEEWrjsLtdc"
+$ApiKey = $env:FIREBASE_WEB_API_KEY
+if (-not $ApiKey) {
+    throw "Set FIREBASE_WEB_API_KEY (Firebase Web API key) before running this script."
+}
 $Cred = "c:\Users\ASUS\Desktop\MyWeddingLK\backend\Presentation\MyWedding.API\firebase-credentials.json"
 $EventId = "49334c6e-c1b3-4627-8f7a-9bc2ffd68c8a"
 $Report = @()
