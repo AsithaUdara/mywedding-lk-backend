@@ -1,0 +1,26 @@
+"Step","Status","Detail"
+"0. API reachable","PASS","http://localhost:5141"
+"1. Login Admin","PASS","Firebase OK"
+"1. Login Planner","PASS","Firebase OK"
+"1. Login Bride","PASS","Firebase OK"
+"1. Login Vendor","PASS","Firebase OK"
+"2. Sync Planner","PASS",
+"2. Sync Bride","PASS",
+"2. Sync Vendor","PASS",
+"3. Verified vendors in directory","FAIL","Found 0/3 demo vendors"
+"4. Planner sees main event","PASS","Shamini and Udara - Royal Kandyan Wedding"
+"5. Event has tasks (Gantt)","PASS","Count: 59"
+"6. Client shortlist read","PASS","Items: 3"
+"7. Client approve shortlist","PASS",
+"8. Client request booking","PASS","bookingId=ef92c1ed-8a84-483b-906c-fd4ec84d46b1"
+"9. Vendor accept booking","FAIL","{""type"":""https://api.mywedding.lk/problems/forbidden#status-403"",""title"":""Forbidden"",""status"":403,""detail"":""You do not have permission to access this resource."",""instance"":""POST /api/bookings/ef92c1ed-8a84-483b-906c-fd4ec84d46b1/accept"",""traceId"":""00-e08f5721e5fcb1ec1f1a256e4bb86906-416181ffb1c24fd3-00"",""timestamp"":""2026-06-04T05:11:43.1451879+00:00""}"
+"10. Vendor upload/generate contract","PASS","contract uploaded"
+"11. Vendor send contract to client","FAIL","{""type"":""https://api.mywedding.lk/problems/forbidden#status-403"",""title"":""Forbidden"",""status"":403,""detail"":""You do not have permission to access this resource."",""instance"":""POST /api/bookings/ef92c1ed-8a84-483b-906c-fd4ec84d46b1/contract/send"",""traceId"":""00-9f4defc46993c0b6cb41dfff9e3ae3c8-3657be83dac22df3-00"",""timestamp"":""2026-06-04T05:11:43.2968475+00:00""}"
+"12. Client sign contract","FAIL","{""type"":""https://api.mywedding.lk/problems/validation-error#status-400"",""title"":""Validation Error"",""status"":400,""detail"":""One or more validation failures have occurred."",""instance"":""POST /api/bookings/ef92c1ed-8a84-483b-906c-fd4ec84d46b1/contract/sign"",""traceId"":""00-b28cef3c81cce707ca7567e2456a7c9e-ac0cef2964d2952a-00"",""timestamp"":""2026-06-04T05:11:43.3552334+00:00"",""errors"":{""status"":[""This booking is not awaiting contract signature.""]}}"
+"13. Audit log ContractSigned","WARN","Check audit entries"
+"14. Deposit checkout session","FAIL","{""message"":""Please sign the vendor contract before paying the deposit."",""code"":""contract_signature_required""}"
+"15. Payment status poll","PASS","booking=Requested payment=None"
+"16. Admin stats","PASS",
+"17. Admin platform analytics","PASS",
+"18. Client budget view","PASS","total=3500000.00 spent=402000.00"
+"19. Client cannot POST /api/events","PASS","Should be 403"

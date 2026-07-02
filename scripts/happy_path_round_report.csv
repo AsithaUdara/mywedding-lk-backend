@@ -1,0 +1,18 @@
+"Step","Status","Detail"
+"Login all roles","PASS","Firebase tokens OK"
+"Kandy Lens in directory","PASS","verified vendor listed"
+"Groom sees wedding event","PASS",""
+"Vendor has services","PASS","247a66dc-e9b9-4157-96e4-7e80cd77b6a8"
+"Planner create shortlist","PASS","94b8308a-9f46-42fa-af69-202009381f06"
+"Planner send to client","PASS",
+"Client approve","PASS",
+"Client request booking","PASS","06d9a68a-2495-40e0-a794-288f16a0e9b9"
+"Vendor accept (Kandy Lens)","PASS",
+"Vendor generate/upload contract","PASS","HTTP:200"
+"Vendor send contract","PASS",
+"Client sign contract","PASS",
+"Audit log ContractSigned","PASS",""
+"Deposit checkout","PASS","isSimulated=False"
+"Payment status","PASS","booking=AwaitingPayment payment=Pending"
+"Shortlist final status","PASS","ContractSigned"
+"Admin analytics","PASS",""

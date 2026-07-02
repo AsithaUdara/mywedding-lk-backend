@@ -1,0 +1,16 @@
+using System;
+using MyWedding.Domain.Enums;
+
+namespace MyWedding.Vendors.Application.Features.Bookings.Queries.GetEventBookings
+{
+    public record EventBookingDto(
+        Guid BookingId,
+        string ServiceName,
+        string VendorName,
+        string? VendorUserId,
+        Guid ServiceId,
+        decimal FinalAmount,
+        BookingStatus Status,
+        DateTime ServiceDate
+    );
+}
