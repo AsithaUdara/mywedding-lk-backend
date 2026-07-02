@@ -3,6 +3,8 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
+#pragma warning disable CS1591 // SignalR/test infrastructure — not part of OpenAPI
+
 namespace MyWedding.API.Auth.Testing;
 
 /// <summary>

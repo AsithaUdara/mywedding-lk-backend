@@ -7,12 +7,17 @@ using System.Security.Claims;
 
 namespace MyWedding.API.Controllers;
 
+/// <summary>
+/// Wedding event brief: guest counts, style preferences, and planning notes.
+/// </summary>
 [ApiController]
 [Authorize]
 public class EventBriefController : ControllerBase
 {
     private readonly IMediator _mediator;
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EventBriefController"/> class.
+        /// </summary>
     public EventBriefController(IMediator mediator)
     {
         _mediator = mediator;
@@ -20,7 +25,15 @@ public class EventBriefController : ControllerBase
 
     private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
+    /// <summary>
+    /// Retrieves the planning brief for an event.
+    /// </summary>
+    /// <param name="eventId">The event identifier.</param>
+    /// <response code="200">Event brief returned.</response>
+    /// <response code="401">Caller is not authenticated.</response>
     [HttpGet("api/events/{eventId:guid}/brief")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetBrief(Guid eventId)
     {
         var userId = GetUserId();
@@ -33,7 +46,16 @@ public class EventBriefController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Updates the planning brief for an event.
+    /// </summary>
+    /// <param name="eventId">The event identifier.</param>
+    /// <param name="request">Guest counts, style, venue preferences, and notes.</param>
+    /// <response code="200">Brief updated.</response>
+    /// <response code="401">Caller is not authenticated.</response>
     [HttpPut("api/events/{eventId:guid}/brief")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> UpdateBrief(Guid eventId, [FromBody] UpdateEventBriefRequest request)
     {
         var userId = GetUserId();
@@ -60,6 +82,7 @@ public class EventBriefController : ControllerBase
     }
 }
 
+/// <summary>Payload for updating an event planning brief.</summary>
 public record UpdateEventBriefRequest(
     int? EstimatedGuestCount,
     int? GuestCountMax,

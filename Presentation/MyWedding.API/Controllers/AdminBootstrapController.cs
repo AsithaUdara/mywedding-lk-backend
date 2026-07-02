@@ -16,7 +16,9 @@ public class AdminBootstrapController : ControllerBase
     private readonly IFirebaseAuthService _firebaseAuthService;
     private readonly IConfiguration _configuration;
     private readonly IWebHostEnvironment _environment;
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AdminBootstrapController"/> class.
+        /// </summary>
     public AdminBootstrapController(
         IFirebaseAuthService firebaseAuthService,
         IConfiguration configuration,
@@ -31,6 +33,9 @@ public class AdminBootstrapController : ControllerBase
     /// Sets Firebase custom claim role for a user (admin, vendor, planner, user).
     /// Requires Development environment, or header X-Bootstrap-Secret matching AdminBootstrap:Secret.
     /// </summary>
+    /// <response code="200">Role set successfully.</response>
+    /// <response code="400">Invalid userId or role.</response>
+    /// <response code="404">Bootstrap not allowed or user not found.</response>
     [HttpPost("set-role")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -72,8 +77,12 @@ public class AdminBootstrapController : ControllerBase
     }
 }
 
+/// <summary>Payload for bootstrap role assignment.</summary>
 public class SetRoleRequest
 {
+    /// <summary>Firebase user ID.</summary>
     public required string UserId { get; set; }
+
+    /// <summary>Role: admin, vendor, planner, or user.</summary>
     public required string Role { get; set; }
 }

@@ -8,12 +8,17 @@ using System.Threading.Tasks;
 
 namespace MyWedding.API.Controllers
 {
+    /// <summary>
+    /// Event activity feed for organizers and managing planners.
+    /// </summary>
     [ApiController]
     [Authorize]
     public class ActivityFeedController : ControllerBase
     {
         private readonly IMediator _mediator;
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ActivityFeedController"/> class.
+        /// </summary>
         public ActivityFeedController(IMediator mediator)
         {
             _mediator = mediator;
@@ -24,7 +29,10 @@ namespace MyWedding.API.Controllers
         /// <summary>
         /// Returns event activity for organizers and managing planners (backed by audit log).
         /// </summary>
+        /// <param name="eventId">The event identifier.</param>
+        /// <response code="200">Activity feed returned.</response>
         [HttpGet("api/events/{eventId:guid}/activity")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetActivityFeed(Guid eventId)
         {
             var query = new GetAuditLogByEventIdQuery

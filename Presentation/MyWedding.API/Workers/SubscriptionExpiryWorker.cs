@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using MyWedding.Domain.Enums;
 using MyWedding.Infrastructure.Persistence;
 
+#pragma warning disable CS1591 // Background worker — not part of OpenAPI
+
 namespace MyWedding.API.Workers;
 
 /// <summary>

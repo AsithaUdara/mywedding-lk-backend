@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.SignalR;
 using MyWedding.API.Hubs;
 using MyWedding.SharedKernel.Interfaces;
 
+#pragma warning disable CS1591 // Internal service — not part of OpenAPI
+
 namespace MyWedding.API.Services;
 
 public class NotificationService : INotificationService

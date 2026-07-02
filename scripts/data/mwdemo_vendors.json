@@ -1,0 +1,836 @@
+{
+  "vendors": [
+    {
+      "slug": "queenskandy",
+      "email": "queenskandy@mw.com",
+      "displayName": "Queen's Hotel Kandy",
+      "businessName": "Queen's Hotel Kandy",
+      "category": "venue",
+      "categoryId": "11111111-1111-1111-1111-111111111111",
+      "city": "Kandy",
+      "province": "Central",
+      "phone": "0812223456",
+      "description": "Historic hill-country hotel with colonial ballroom and lake-view terraces for Kandyan weddings.",
+      "website": "https://queenshotel.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1519167758481-83f550bb49b8?w=1200&q=80",
+      "services": [
+        {
+          "name": "Grand Ballroom Reception 250 Guests",
+          "tagline": "Colonial elegance in the heart of Kandy",
+          "description": "Full-day ballroom hire, stage, bridal suite, and dedicated event coordinator for up to 250 guests.",
+          "basePrice": 950000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1464366400600-06614163632e?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1464366400600-06614163632e?w=800&q=80",
+            "https://images.unsplash.com/photo-1519225421984-711436891645?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Lakeview Terrace Ceremony",
+          "tagline": "Outdoor vows with Kandy Lake backdrop",
+          "description": "Ceremony setup on the terrace including poruwa styling area and guest seating for 150.",
+          "basePrice": 420000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1478145048987-b1753b3ea9a3?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1478145048987-b1753b3ea9a3?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "gallefort",
+      "email": "gallefort@mw.com",
+      "displayName": "Galle Fort Heritage",
+      "businessName": "Galle Fort Heritage Venue",
+      "category": "venue",
+      "categoryId": "11111111-1111-1111-1111-111111111111",
+      "city": "Galle",
+      "province": "Southern",
+      "phone": "0912234567",
+      "description": "Restored Dutch-era courtyard venue inside Galle Fort for intimate coastal weddings.",
+      "website": "https://gallefortvenue.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1519225421984-711436891645?w=1200&q=80",
+      "services": [
+        {
+          "name": "Fort Courtyard Wedding Package",
+          "tagline": "UNESCO heritage setting",
+          "description": "Courtyard ceremony and reception for 120 guests with lighting and sound shell included.",
+          "basePrice": 780000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1520854221256-17451f9e2b4a?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1520854221256-17451f9e2b4a?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Sunset Rooftop Reception",
+          "tagline": "Indian Ocean golden hour",
+          "description": "Rooftop cocktail and dinner reception for 80 guests with ocean views.",
+          "basePrice": 550000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1469371670807-013ccf25f16a?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1469371670807-013ccf25f16a?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Heritage Villa Buyout",
+          "tagline": "Exclusive fort villa for two-day celebrations",
+          "description": "Full villa buyout with accommodation for bridal party and rehearsal dinner space.",
+          "basePrice": 1250000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "negombobeach",
+      "email": "negombobeach@mw.com",
+      "displayName": "Negombo Beach Resort",
+      "businessName": "Negombo Beach Resort",
+      "category": "venue",
+      "categoryId": "11111111-1111-1111-1111-111111111111",
+      "city": "Negombo",
+      "province": "Western",
+      "phone": "0312278901",
+      "description": "Beachfront resort with lawn and pavilion spaces minutes from Bandaranaike International Airport.",
+      "website": "https://negombobeachresort.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=80",
+      "services": [
+        {
+          "name": "Beach Lawn Ceremony & Reception",
+          "tagline": "Sand, surf, and sunset vows",
+          "description": "Beachfront ceremony arch, lawn reception, and guest shuttle from airport hotels.",
+          "basePrice": 890000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1519741497674-611481863552?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1519741497674-611481863552?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Poolside Cocktail Reception",
+          "tagline": "Tropical welcome party",
+          "description": "Two-hour poolside cocktail event with canapes and live acoustic duo.",
+          "basePrice": 320000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "colombogrand",
+      "email": "colombogrand@mw.com",
+      "displayName": "Colombo Grand Ballroom",
+      "businessName": "Colombo Grand Ballroom",
+      "category": "venue",
+      "categoryId": "11111111-1111-1111-1111-111111111111",
+      "city": "Colombo",
+      "province": "Western",
+      "phone": "0112345678",
+      "description": "Premium city ballroom in Colombo 7 for large receptions and multi-faith ceremonies.",
+      "website": "https://colombogrand.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=80",
+      "services": [
+        {
+          "name": "Crystal Ballroom 400 Guests",
+          "tagline": "Colombo's largest wedding floor",
+          "description": "Crystal ballroom with LED backdrop, bridal dressing room, and valet parking.",
+          "basePrice": 1450000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Garden Pavilion 180 Guests",
+          "tagline": "Indoor-outdoor flexibility",
+          "description": "Glass pavilion opening to landscaped gardens with rain backup plan.",
+          "basePrice": 720000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1478145048987-b1753b3ea9a3?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1478145048987-b1753b3ea9a3?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Registration & Homecoming Package",
+          "tagline": "Compact celebration spaces",
+          "description": "Salon hire for registration ceremonies and homecoming receptions up to 100 guests.",
+          "basePrice": 285000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "kandylens",
+      "email": "kandylens@mw.com",
+      "displayName": "Kandy Lens Studio",
+      "businessName": "Kandy Lens Studio",
+      "category": "photography",
+      "categoryId": "22222222-2222-2222-2222-222222222222",
+      "city": "Kandy",
+      "province": "Central",
+      "phone": "0777111001",
+      "description": "Award-winning wedding photography team specializing in Kandyan traditions and candid storytelling.",
+      "website": "https://kandylens.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1606216794074-58e02164a081?w=1200&q=80",
+      "services": [
+        {
+          "name": "Full Day Wedding Photography",
+          "tagline": "Full-day coverage, two photographers",
+          "description": "Full-day coverage with 600+ edited photos, online gallery, and same-day sneak peek.",
+          "basePrice": 185000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1519741497674-611481863552?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1519741497674-611481863552?w=800&q=80",
+            "https://images.unsplash.com/photo-1465495976274-5597d0990f88?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Engagement & Pre-Wedding Shoot",
+          "tagline": "Heritage location portraits",
+          "description": "Half-day session at Temple of the Tooth precinct or Peradeniya Gardens with 80 edited portraits.",
+          "basePrice": 75000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1522673607200-98601f0f779a?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1522673607200-98601f0f779a?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Cinematic Highlight Film",
+          "tagline": "Four to six minute wedding film",
+          "description": "Cinematic highlight reel with licensed music delivered within three weeks.",
+          "basePrice": 120000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1492691527719-9d1e072e4c6e?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1492691527719-9d1e072e4c6e?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "colombocapture",
+      "email": "colombocapture@mw.com",
+      "displayName": "Colombo Capture Co",
+      "businessName": "Colombo Capture Co",
+      "category": "photography",
+      "categoryId": "22222222-2222-2222-2222-222222222222",
+      "city": "Colombo",
+      "province": "Western",
+      "phone": "0777222333",
+      "description": "Modern wedding photo and video studio serving Colombo and the west coast.",
+      "website": "https://colombocapture.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1492691527719-9d1e072e4c6e?w=1200&q=80",
+      "services": [
+        {
+          "name": "Premium Photo + Video Duo",
+          "tagline": "Photo and video team in one package",
+          "description": "10-hour coverage with lead photographer, videographer, and drone aerials where permitted.",
+          "basePrice": 245000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Same-Day Edit Slideshow",
+          "tagline": "Reception surprise reel",
+          "description": "Same-day edit played during reception with 50 curated moments from the day.",
+          "basePrice": 65000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1520854221256-17451f9e2b4a?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1520854221256-17451f9e2b4a?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "galleframes",
+      "email": "galleframes@mw.com",
+      "displayName": "Galle Frames",
+      "businessName": "Galle Frames Videography",
+      "category": "photography",
+      "categoryId": "22222222-2222-2222-2222-222222222222",
+      "city": "Galle",
+      "province": "Southern",
+      "phone": "0777333444",
+      "description": "Coastal wedding videography with documentary-style storytelling and colour-graded films.",
+      "website": "https://galleframes.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=1200&q=80",
+      "services": [
+        {
+          "name": "Documentary Wedding Film",
+          "tagline": "Full ceremony and reception film",
+          "description": "Multi-camera documentary edit with speeches, rituals, and reception highlights.",
+          "basePrice": 165000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Teaser & Social Reels Pack",
+          "tagline": "Instagram-ready vertical clips",
+          "description": "Three vertical reels and a 60-second teaser within one week of the wedding.",
+          "basePrice": 55000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1611162616475-46b635cb6848?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1611162616475-46b635cb6848?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Add-On Second Shooter",
+          "tagline": "Extra coverage angle",
+          "description": "Second videographer for poruwa and entrance coverage.",
+          "basePrice": 45000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1492691527719-9d1e072e4c6e?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1492691527719-9d1e072e4c6e?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "hillcountryphoto",
+      "email": "hillcountryphoto@mw.com",
+      "displayName": "Hill Country Photo",
+      "businessName": "Hill Country Photo",
+      "category": "photography",
+      "categoryId": "22222222-2222-2222-2222-222222222222",
+      "city": "Nuwara Eliya",
+      "province": "Central",
+      "phone": "0777444555",
+      "description": "Tea-estate and misty mountain wedding photography across the hill country.",
+      "website": "https://hillcountryphoto.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1465495976274-5597d0990f88?w=1200&q=80",
+      "services": [
+        {
+          "name": "Tea Estate Elopement Package",
+          "tagline": "Intimate hill-country vows",
+          "description": "Four-hour shoot at a private tea estate with 120 edited photos.",
+          "basePrice": 95000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1465495976274-5597d0990f88?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1465495976274-5597d0990f88?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Full Wedding Day Coverage",
+          "tagline": "From prep to first dance",
+          "description": "Full-day photography with assistant and USB delivery of high-resolution files.",
+          "basePrice": 175000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1522673607200-98601f0f779a?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1522673607200-98601f0f779a?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "royalspice",
+      "email": "royalspice@mw.com",
+      "displayName": "Royal Spice Catering",
+      "businessName": "Royal Spice Catering",
+      "category": "catering",
+      "categoryId": "33333333-3333-3333-3333-333333333333",
+      "city": "Colombo",
+      "province": "Western",
+      "phone": "0777222002",
+      "description": "Premium Sri Lankan and international wedding catering with live cooking stations.",
+      "website": "https://royalspice.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1555244169-1f25f9a85ecc?w=1200&q=80",
+      "services": [
+        {
+          "name": "Royal Banquet 300 Guests",
+          "tagline": "Traditional buffet excellence",
+          "description": "Full Sri Lankan buffet with live hopper station, service staff, and table linen.",
+          "basePrice": 850000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1555244169-1f25f9a85ecc?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1555244169-1f25f9a85ecc?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Cocktail and Canape Reception",
+          "tagline": "Elegant welcome drinks",
+          "description": "Two-hour cocktail service with eight canape varieties and beverage station.",
+          "basePrice": 220000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Kiribath & Traditional Breakfast",
+          "tagline": "Morning after celebration",
+          "description": "Traditional breakfast spread for 150 guests the morning after the wedding.",
+          "basePrice": 95000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "kandyfeast",
+      "email": "kandyfeast@mw.com",
+      "displayName": "Kandy Feast",
+      "businessName": "Kandy Feast Caterers",
+      "category": "catering",
+      "categoryId": "33333333-3333-3333-3333-333333333333",
+      "city": "Kandy",
+      "province": "Central",
+      "phone": "0812556677",
+      "description": "Authentic Kandyan wedding feasts with heirloom recipes and trained service teams.",
+      "website": "https://kandyfeast.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7440?w=1200&q=80",
+      "services": [
+        {
+          "name": "Kandyan Rice & Curry Spread",
+          "tagline": "18 curries, red rice, and sweets",
+          "description": "Traditional spread for 250 guests with serving staff and banana-leaf plating option.",
+          "basePrice": 720000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7440?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7440?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Live Kottu & BBQ Station",
+          "tagline": "Late-night guest favourite",
+          "description": "Interactive kottu and BBQ station for 200 guests during reception.",
+          "basePrice": 185000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "coastalbites",
+      "email": "coastalbites@mw.com",
+      "displayName": "Coastal Bites",
+      "businessName": "Coastal Bites Catering",
+      "category": "catering",
+      "categoryId": "33333333-3333-3333-3333-333333333333",
+      "city": "Galle",
+      "province": "Southern",
+      "phone": "0912667788",
+      "description": "Fresh seafood and tropical menus for southern coast beach weddings.",
+      "website": "https://coastalbites.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=1200&q=80",
+      "services": [
+        {
+          "name": "Seafood Beach Banquet",
+          "tagline": "Catch-of-the-day menu",
+          "description": "Seafood-forward buffet for 180 guests with grilled prawn station.",
+          "basePrice": 680000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Tropical Dessert Bar",
+          "tagline": "Wattalapam, curd, and fruit",
+          "description": "Dessert station with Sri Lankan sweets and tropical fruit display.",
+          "basePrice": 85000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Beach BBQ Dinner",
+          "tagline": "Sunset grill experience",
+          "description": "Beach BBQ dinner setup with chef grill and sides for 120 guests.",
+          "basePrice": 420000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "negombokitchen",
+      "email": "negombokitchen@mw.com",
+      "displayName": "Negombo Kitchen",
+      "businessName": "Negombo Kitchen",
+      "category": "catering",
+      "categoryId": "33333333-3333-3333-3333-333333333333",
+      "city": "Negombo",
+      "province": "Western",
+      "phone": "0312778899",
+      "description": "Family-run catering team known for lagoon crab and western fusion wedding menus.",
+      "website": "https://negombokitchen.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&q=80",
+      "services": [
+        {
+          "name": "Fusion Wedding Menu 200 Guests",
+          "tagline": "East meets west buffet",
+          "description": "Fusion buffet with Sri Lankan mains and western carving station.",
+          "basePrice": 620000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Crab & Lagoon Special",
+          "tagline": "Signature Negombo crab curry",
+          "description": "Add-on lagoon crab curry station for 150 guests.",
+          "basePrice": 145000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1555244169-1f25f9a85ecc?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1555244169-1f25f9a85ecc?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "lotusbloom",
+      "email": "lotusbloom@mw.com",
+      "displayName": "Lotus Bloom",
+      "businessName": "Lotus Bloom Florists",
+      "category": "floral",
+      "categoryId": "44444444-4444-4444-4444-444444444444",
+      "city": "Kandy",
+      "province": "Central",
+      "phone": "0777333003",
+      "description": "Kandyan-inspired floral design with lotus motifs and poruwa styling expertise.",
+      "website": "https://lotusbloom.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1498931299472-f7a710eb1d33?w=1200&q=80",
+      "services": [
+        {
+          "name": "Bridal Bouquet and Boutonniere Set",
+          "tagline": "Orchid and lotus bridal flowers",
+          "description": "Bridal bouquet with groom and wedding party boutonnieres.",
+          "basePrice": 45000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1498931299472-f7a710eb1d33?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1498931299472-f7a710eb1d33?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Ceremony Mandap & Aisle Decor",
+          "tagline": "Full poruwa floral styling",
+          "description": "Mandap florals, aisle petals, and entrance arch with fresh orchids.",
+          "basePrice": 175000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1522673607200-98601f0f779a?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1522673607200-98601f0f779a?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Reception Centrepieces per Table",
+          "tagline": "Gold pedestal arrangements",
+          "description": "Per-table centrepieces on gold pedestals, minimum 20 tables.",
+          "basePrice": 8500,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1519225421984-711436891645?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1519225421984-711436891645?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "orchidgarden",
+      "email": "orchidgarden@mw.com",
+      "displayName": "Orchid Garden",
+      "businessName": "Orchid Garden Decor",
+      "category": "floral",
+      "categoryId": "44444444-4444-4444-4444-444444444444",
+      "city": "Colombo",
+      "province": "Western",
+      "phone": "0112889900",
+      "description": "Luxury floral and event decor for Colombo ballroom and garden weddings.",
+      "website": "https://orchidgarden.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1522673607200-98601f0f779a?w=1200&q=80",
+      "services": [
+        {
+          "name": "Grand Entrance Floral Arch",
+          "tagline": "Statement welcome installation",
+          "description": "Oversized floral arch with orchids and greenery for ceremony entrance.",
+          "basePrice": 125000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1522673607200-98601f0f779a?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1522673607200-98601f0f779a?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Head Table & Stage Florals",
+          "tagline": "Reception focal point",
+          "description": "Head table runner, backdrop florals, and cake table styling.",
+          "basePrice": 98000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1498931299472-f7a710eb1d33?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1498931299472-f7a710eb1d33?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "tropicalbloom",
+      "email": "tropicalbloom@mw.com",
+      "displayName": "Tropical Bloom",
+      "businessName": "Tropical Bloom Studio",
+      "category": "floral",
+      "categoryId": "44444444-4444-4444-4444-444444444444",
+      "city": "Galle",
+      "province": "Southern",
+      "phone": "0912990011",
+      "description": "Tropical beach wedding florals with palm, frangipani, and wild orchid palettes.",
+      "website": "https://tropicalbloom.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1519225421984-711436891645?w=1200&q=80",
+      "services": [
+        {
+          "name": "Beach Ceremony Florals",
+          "tagline": "Frangipani and palm styling",
+          "description": "Beach arch, aisle markers, and chair posies for 100 guests.",
+          "basePrice": 135000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1519225421984-711436891645?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1519225421984-711436891645?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Bridal & Bridesmaid Bouquets",
+          "tagline": "Coastal colour palette",
+          "description": "Bridal bouquet plus four bridesmaid posies with tropical blooms.",
+          "basePrice": 52000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1498931299472-f7a710eb1d33?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1498931299472-f7a710eb1d33?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Reception Table Runners",
+          "tagline": "Low lush tropical runners",
+          "description": "Greenery runners with tropical blooms, priced per table.",
+          "basePrice": 7500,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1465495976274-5597d0990f88?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1465495976274-5597d0990f88?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "kandyanpetals",
+      "email": "kandyanpetals@mw.com",
+      "displayName": "Kandyan Petals",
+      "businessName": "Kandyan Petals",
+      "category": "floral",
+      "categoryId": "44444444-4444-4444-4444-444444444444",
+      "city": "Kandy",
+      "province": "Central",
+      "phone": "0812445566",
+      "description": "Traditional Kandyan floral artisans for poruwa ceremonies and homecoming decor.",
+      "website": "https://kandyanpetals.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1465495976274-5597d0990f88?w=1200&q=80",
+      "services": [
+        {
+          "name": "Poruwa Floral Package",
+          "tagline": "Traditional Kandyan styling",
+          "description": "Complete poruwa floral setup with oil lamp flowers and aisle petals.",
+          "basePrice": 155000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1465495976274-5597d0990f88?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1465495976274-5597d0990f88?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Homecoming Decor Set",
+          "tagline": "Doorway and living room florals",
+          "description": "Fresh flower arrangements for homecoming celebration spaces.",
+          "basePrice": 38000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1522673607200-98601f0f779a?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1522673607200-98601f0f779a?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "islandbeats",
+      "email": "islandbeats@mw.com",
+      "displayName": "Island Beats DJ",
+      "businessName": "Island Beats DJ",
+      "category": "music",
+      "categoryId": "55555555-5555-5555-5555-555555555555",
+      "city": "Colombo",
+      "province": "Western",
+      "phone": "0777555666",
+      "description": "Professional wedding DJs blending Sinhala, Tamil, and international dance sets.",
+      "website": "https://islandbeats.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1571260899304-425eee4c376e?w=1200&q=80",
+      "services": [
+        {
+          "name": "Full Reception DJ Package",
+          "tagline": "Sound, lights, and MC",
+          "description": "Six-hour DJ set with PA, dance-floor lighting, and bilingual MC.",
+          "basePrice": 95000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1571260899304-425eee4c376e?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1571260899304-425eee4c376e?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Ceremony Sound System",
+          "tagline": "Wireless mics and playback",
+          "description": "Ceremony PA with wireless lapel mic and processional music playback.",
+          "basePrice": 35000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80"
+          ]
+        },
+        {
+          "name": "After-Party DJ Extension",
+          "tagline": "Keep the floor alive",
+          "description": "Two-hour after-party DJ extension with enhanced lighting.",
+          "basePrice": 45000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1511379938543-c1f69419868d?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1511379938543-c1f69419868d?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "kandyensemble",
+      "email": "kandyensemble@mw.com",
+      "displayName": "Kandy Live Ensemble",
+      "businessName": "Kandy Live Ensemble",
+      "category": "music",
+      "categoryId": "55555555-5555-5555-5555-555555555555",
+      "city": "Kandy",
+      "province": "Central",
+      "phone": "0777666777",
+      "description": "Live band and traditional drummers for Kandyan wedding processions and receptions.",
+      "website": "https://kandyensemble.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&q=80",
+      "services": [
+        {
+          "name": "Live Band Reception Set",
+          "tagline": "Five-piece wedding band",
+          "description": "Five-piece band performing Sinhala classics and English covers for four hours.",
+          "basePrice": 145000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Traditional Drummers Procession",
+          "tagline": "Magul bera and dancers",
+          "description": "Traditional drummers and four dancers for poruwa entrance.",
+          "basePrice": 85000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1511379938543-c1f69419868d?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1511379938543-c1f69419868d?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "coastalgroove",
+      "email": "coastalgroove@mw.com",
+      "displayName": "Coastal Groove",
+      "businessName": "Coastal Groove Band",
+      "category": "music",
+      "categoryId": "55555555-5555-5555-5555-555555555555",
+      "city": "Negombo",
+      "province": "Western",
+      "phone": "0777888999",
+      "description": "Acoustic and reggae-influenced wedding entertainment for beach and garden venues.",
+      "website": "https://coastalgroove.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1511379938543-c1f69419868d?w=1200&q=80",
+      "services": [
+        {
+          "name": "Acoustic Sunset Set",
+          "tagline": "Cocktail hour live music",
+          "description": "Acoustic duo for two-hour cocktail and sunset session.",
+          "basePrice": 55000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1511379938543-c1f69419868d?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1511379938543-c1f69419868d?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Full Band Beach Reception",
+          "tagline": "Reggae and pop dance set",
+          "description": "Four-piece band with reggae and pop repertoire for beach reception.",
+          "basePrice": 120000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80"
+          ]
+        },
+        {
+          "name": "DJ + Band Combo",
+          "tagline": "Live band plus DJ handoff",
+          "description": "Three-hour band set followed by two-hour DJ for seamless reception.",
+          "basePrice": 165000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1571260899304-425eee4c376e?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1571260899304-425eee4c376e?w=800&q=80"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "ceyloncakes",
+      "email": "ceyloncakes@mw.com",
+      "displayName": "Ceylon Wedding Cakes",
+      "businessName": "Ceylon Wedding Cakes",
+      "category": "other",
+      "categoryId": "66666666-6666-6666-6666-666666666666",
+      "city": "Colombo",
+      "province": "Western",
+      "phone": "0112998877",
+      "description": "Custom wedding cakes and dessert tables with Sri Lankan flavour inspirations.",
+      "website": "https://ceyloncakes.lk",
+      "coverImageUrl": "https://images.unsplash.com/photo-1535254961713-d8c4b4e0d4b0?w=1200&q=80",
+      "services": [
+        {
+          "name": "Four-Tier Signature Wedding Cake",
+          "tagline": "Hand-piped fondant masterpiece",
+          "description": "Four-tier custom cake serving 200 guests with tasting session included.",
+          "basePrice": 125000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1535254961713-d8c4b4e0d4b0?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1535254961713-d8c4b4e0d4b0?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Dessert Table Package",
+          "tagline": "Cupcakes, macarons, and wattalapam shots",
+          "description": "Full dessert table styling for 150 guests with cake-stand hire.",
+          "basePrice": 78000,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=800&q=80"
+          ]
+        },
+        {
+          "name": "Mini Cake Favours",
+          "tagline": "Guest takeaway treats",
+          "description": "Individual mini cakes as favours, priced per guest minimum 100.",
+          "basePrice": 850,
+          "primaryImageUrl": "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=800&q=80",
+          "galleryUrls": [
+            "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=800&q=80"
+          ]
+        }
+      ]
+    }
+  ]
+}

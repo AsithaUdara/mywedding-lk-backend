@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 
+#pragma warning disable CS1591 // SignalR hub — not part of OpenAPI
+
 namespace MyWedding.API.Hubs;
 
 /// <summary>

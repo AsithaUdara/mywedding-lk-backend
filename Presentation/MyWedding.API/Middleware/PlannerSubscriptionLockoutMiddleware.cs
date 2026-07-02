@@ -1,6 +1,8 @@
 using MyWedding.Domain.Interfaces;
 using MyWedding.SharedKernel.Exceptions;
 
+#pragma warning disable CS1591 // HTTP middleware — not part of OpenAPI
+
 namespace MyWedding.API.Middleware;
 
 /// <summary>

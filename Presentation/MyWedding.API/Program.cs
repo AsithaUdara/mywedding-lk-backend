@@ -163,7 +163,13 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "MyWedding LK API", Version = "v1" });
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "MyWedding LK API",
+        Version = "v1",
+        Description = "REST API for wedding planners, vendors, couples, and platform administrators. " +
+                      "Authenticate with a Firebase ID token via the Authorize button (Bearer scheme)."
+    });
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -233,6 +239,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+#pragma warning disable CS1591 // Host bootstrap and auth handler — not part of OpenAPI
 
 public partial class Program { }
 

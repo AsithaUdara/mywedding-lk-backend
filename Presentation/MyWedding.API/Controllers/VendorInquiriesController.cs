@@ -10,13 +10,18 @@ using System.Threading.Tasks;
 
 namespace MyWedding.API.Controllers;
 
+/// <summary>
+/// Vendor inquiry inbox: list inquiries, generate quotes, and mark as read.
+/// </summary>
 [ApiController]
 [Route("api/vendor/inquiries")]
 [Authorize]
 public class VendorInquiriesController : ControllerBase
 {
     private readonly IMediator _mediator;
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VendorInquiriesController"/> class.
+        /// </summary>
     public VendorInquiriesController(IMediator mediator)
     {
         _mediator = mediator;
@@ -24,7 +29,14 @@ public class VendorInquiriesController : ControllerBase
 
     private string? GetVendorId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+    /// <summary>
+    /// Lists all inquiries for the authenticated vendor.
+    /// </summary>
+    /// <response code="200">Inquiries returned.</response>
+    /// <response code="401">Caller is not authenticated.</response>
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetInquiries()
     {
         var vendorId = GetVendorId();
@@ -35,7 +47,16 @@ public class VendorInquiriesController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Generates a quote response for an inquiry (optionally with a proposed amount).
+    /// </summary>
+    /// <param name="id">The inquiry identifier.</param>
+    /// <param name="request">Optional proposed quote amount.</param>
+    /// <response code="200">Quote generated.</response>
+    /// <response code="401">Caller is not authenticated.</response>
     [HttpPost("{id:guid}/quote")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GenerateQuote(Guid id, [FromBody] GenerateInquiryQuoteRequest? request)
     {
         var vendorId = GetVendorId();
@@ -52,7 +73,15 @@ public class VendorInquiriesController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Marks an inquiry as read.
+    /// </summary>
+    /// <param name="id">The inquiry identifier.</param>
+    /// <response code="204">Inquiry marked as read.</response>
+    /// <response code="401">Caller is not authenticated.</response>
     [HttpPatch("{id:guid}/read")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> MarkAsRead(Guid id)
     {
         var vendorId = GetVendorId();
@@ -64,4 +93,5 @@ public class VendorInquiriesController : ControllerBase
     }
 }
 
+/// <summary>Payload for generating an inquiry quote.</summary>
 public record GenerateInquiryQuoteRequest(decimal? ProposedAmount);

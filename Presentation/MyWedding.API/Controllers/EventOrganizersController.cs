@@ -20,7 +20,9 @@ public class EventOrganizersController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly IEventOrganizerRepository _organizerRepository;
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EventOrganizersController"/> class.
+        /// </summary>
     public EventOrganizersController(IMediator mediator, IEventOrganizerRepository organizerRepository)
     {
         _mediator = mediator;
@@ -34,7 +36,13 @@ public class EventOrganizersController : ControllerBase
     /// </summary>
     /// <param name="eventId">The unique identifier of the wedding event.</param>
     /// <returns>A list of organizers with their roles and permissions.</returns>
+    /// <response code="200">Organizers returned.</response>
+    /// <response code="401">Caller is not authenticated.</response>
+    /// <response code="403">Caller is not an event member.</response>
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetOrganizersForEvent(Guid eventId)
     {
         var currentUserId = GetUserId();
@@ -57,7 +65,11 @@ public class EventOrganizersController : ControllerBase
     /// <param name="eventId">The unique identifier of the wedding event.</param>
     /// <param name="request">The invitation details including email, role, and permission level.</param>
     /// <returns>200 OK on success, or appropriate error status.</returns>
+    /// <response code="200">Invitation sent.</response>
+    /// <response code="401">Caller is not authenticated.</response>
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> InviteUserToEvent(Guid eventId, [FromBody] InviteUserRequest request)
     {
         var inviterUserId = GetUserId();
@@ -87,7 +99,11 @@ public class EventOrganizersController : ControllerBase
     /// <param name="userId">The ID of the organizer to update.</param>
     /// <param name="request">The new role and permission level.</param>
     /// <returns>200 OK on success.</returns>
+    /// <response code="200">Organizer updated.</response>
+    /// <response code="401">Caller is not authenticated.</response>
     [HttpPut("{userId}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> UpdateOrganizerRole(Guid eventId, string userId, [FromBody] UpdateOrganizerRequest request)
     {
         var currentUserId = GetUserId();

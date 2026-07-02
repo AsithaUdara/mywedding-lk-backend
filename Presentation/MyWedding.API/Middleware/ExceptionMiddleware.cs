@@ -3,6 +3,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using MyWedding.SharedKernel.Exceptions;
 
+#pragma warning disable CS1591 // HTTP middleware — not part of OpenAPI
+
 namespace MyWedding.API.Middleware;
 
 /// <summary>

@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using MyWedding.Domain.Interfaces;
 
+#pragma warning disable CS1591 // Internal service — not part of OpenAPI
+
 namespace MyWedding.API.Services;
 
 public class CurrentPlannerAccessor : ICurrentPlannerAccessor

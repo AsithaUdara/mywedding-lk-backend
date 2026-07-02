@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.SignalR;
 using MyWedding.Domain.Interfaces;
 using System.Security.Claims;
 
+#pragma warning disable CS1591 // SignalR hub — not part of OpenAPI
+
 namespace MyWedding.API.Hubs
 {
     public interface ICollaborationHubClient

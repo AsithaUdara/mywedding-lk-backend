@@ -21,7 +21,9 @@ public class BudgetController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly IEventOrganizerRepository _organizerRepository;
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BudgetController"/> class.
+        /// </summary>
     public BudgetController(IMediator mediator, IEventOrganizerRepository organizerRepository)
     {
         _mediator = mediator;
@@ -35,7 +37,15 @@ public class BudgetController : ControllerBase
     /// </summary>
     /// <param name="eventId">The unique identifier of the wedding event.</param>
     /// <returns>Budget overview data if found.</returns>
+    /// <response code="200">Budget overview returned.</response>
+    /// <response code="401">Caller is not authenticated.</response>
+    /// <response code="403">Caller is not an event organizer.</response>
+    /// <response code="404">Event or budget not found.</response>
     [HttpGet("api/events/{eventId:guid}/budget")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetBudgetOverview(Guid eventId)
     {
         var userId = GetUserId();
@@ -55,7 +65,13 @@ public class BudgetController : ControllerBase
     /// <param name="eventId">The unique identifier of the wedding event.</param>
     /// <param name="request">The expense details.</param>
     /// <returns>201 Created with the new expense ID.</returns>
+    /// <response code="201">Expense created.</response>
+    /// <response code="401">Caller is not authenticated.</response>
+    /// <response code="403">Caller lacks permission to add expenses.</response>
     [HttpPost("api/events/{eventId:guid}/expenses")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> AddExpense(Guid eventId, [FromBody] AddExpenseRequest request)
     {
         var userId = GetUserId();
@@ -87,7 +103,13 @@ public class BudgetController : ControllerBase
     /// </summary>
     /// <param name="eventId">The unique identifier of the wedding event.</param>
     /// <returns>A list of expense entries.</returns>
+    /// <response code="200">Expenses returned.</response>
+    /// <response code="401">Caller is not authenticated.</response>
+    /// <response code="403">Caller is not an event organizer.</response>
     [HttpGet("api/events/{eventId:guid}/expenses")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetExpenses(Guid eventId)
     {
         var userId = GetUserId();
@@ -106,7 +128,9 @@ public class BudgetController : ControllerBase
     /// Retrieves all available budget categories (e.g., Venue, Photography, Catering).
     /// </summary>
     /// <returns>A list of budget categories.</returns>
+    /// <response code="200">Categories returned.</response>
     [HttpGet("api/budget-categories")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetBudgetCategories()
     {
         var query = new GetBudgetCategoriesQuery();

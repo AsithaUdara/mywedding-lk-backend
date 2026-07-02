@@ -5,6 +5,8 @@ using MyWedding.SharedKernel.Interfaces;
 using System;
 using System.Threading.Tasks;
 
+#pragma warning disable CS1591 // Internal service — not part of OpenAPI
+
 namespace MyWedding.API.Services
 {
     /// <summary>

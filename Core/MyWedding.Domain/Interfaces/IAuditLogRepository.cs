@@ -1,4 +1,5 @@
 using MyWedding.Domain.Entities;
+using MyWedding.Domain.ReadModels;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -10,5 +11,15 @@ namespace MyWedding.Domain.Interfaces
     {
         Task AddAsync(AuditLogItem item, CancellationToken cancellationToken = default);
         Task<IEnumerable<AuditLogItem>> GetByEventIdAsync(Guid eventId, CancellationToken cancellationToken = default);
+        Task<PagedResult<AuditLogItem>> GetByEventIdPagedAsync(
+            Guid eventId,
+            string? search,
+            string? actionType,
+            int page,
+            int pageSize,
+            CancellationToken cancellationToken = default);
+        Task<EventAuditStats> GetEventAuditStatsAsync(
+            Guid eventId,
+            CancellationToken cancellationToken = default);
     }
 }

@@ -19,7 +19,9 @@ namespace MyWedding.API.Controllers
     public class TasksController : ControllerBase
     {
         private readonly IMediator _mediator;
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TasksController"/> class.
+        /// </summary>
         public TasksController(IMediator mediator)
         {
             _mediator = mediator;
@@ -32,7 +34,9 @@ namespace MyWedding.API.Controllers
         /// </summary>
         /// <param name="eventId">The unique identifier of the wedding event.</param>
         /// <returns>A list of event tasks.</returns>
+        /// <response code="200">Tasks returned successfully.</response>
         [HttpGet("api/events/{eventId:guid}/tasks")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetTasksForEvent(Guid eventId)
         {
             var query = new GetTasksByEventIdQuery { EventId = eventId, UserId = GetUserId() };
@@ -46,7 +50,9 @@ namespace MyWedding.API.Controllers
         /// <param name="eventId">The unique identifier of the wedding event.</param>
         /// <param name="request">The task details.</param>
         /// <returns>The ID of the created task.</returns>
+        /// <response code="201">Task created.</response>
         [HttpPost("api/events/{eventId:guid}/tasks")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
         public async Task<IActionResult> CreateTask(Guid eventId, [FromBody] CreateTaskRequest request)
         {
             var userId = GetUserId();
@@ -72,7 +78,11 @@ namespace MyWedding.API.Controllers
         /// <param name="taskId">The ID of the task to update.</param>
         /// <param name="request">The new status Details.</param>
         /// <returns>NoContent if successful.</returns>
+        /// <response code="204">Status updated.</response>
+        /// <response code="401">Caller is not authenticated.</response>
         [HttpPut("api/tasks/{taskId:guid}/status")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> UpdateTaskStatus(Guid taskId, [FromBody] UpdateTaskStatusRequest request)
         {
             var userId = GetUserId();
@@ -96,7 +106,11 @@ namespace MyWedding.API.Controllers
         /// <summary>
         /// Assigns or clears the owner of a task (must be an event team member).
         /// </summary>
+        /// <response code="204">Assignment updated.</response>
+        /// <response code="401">Caller is not authenticated.</response>
         [HttpPut("api/tasks/{taskId:guid}/assign")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> AssignTask(Guid taskId, [FromBody] AssignTaskRequest request)
         {
             var userId = GetUserId();
@@ -118,7 +132,11 @@ namespace MyWedding.API.Controllers
         /// <summary>
         /// Updates task details (title, dates, status, dependency).
         /// </summary>
+        /// <response code="204">Task updated.</response>
+        /// <response code="401">Caller is not authenticated.</response>
         [HttpPut("api/events/{eventId:guid}/tasks/{taskId:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> UpdateTask(
             Guid eventId,
             Guid taskId,
@@ -150,7 +168,11 @@ namespace MyWedding.API.Controllers
         /// <summary>
         /// Deletes a task from the event checklist.
         /// </summary>
+        /// <response code="204">Task deleted.</response>
+        /// <response code="401">Caller is not authenticated.</response>
         [HttpDelete("api/events/{eventId:guid}/tasks/{taskId:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> DeleteTask(Guid eventId, Guid taskId)
         {
             var userId = GetUserId();
@@ -172,7 +194,11 @@ namespace MyWedding.API.Controllers
         /// <summary>
         /// Updates task schedule fields (Gantt drag-and-drop).
         /// </summary>
+        /// <response code="204">Schedule updated.</response>
+        /// <response code="401">Caller is not authenticated.</response>
         [HttpPatch("api/events/{eventId:guid}/tasks/{taskId:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> UpdateTaskSchedule(
             Guid eventId,
             Guid taskId,
@@ -201,9 +227,13 @@ namespace MyWedding.API.Controllers
         }
 
         /// <summary>
-        /// Realigns incomplete template tasks from today forward (fixes overdue schedules for mid-planning weddings).
+        /// Returns a preview of the checklist plan before applying it to the event.
         /// </summary>
+        /// <response code="200">Checklist preview returned.</response>
+        /// <response code="401">Caller is not authenticated.</response>
         [HttpGet("api/events/{eventId:guid}/checklist-preview")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetChecklistPreview(Guid eventId)
         {
             var userId = GetUserId();
@@ -224,7 +254,11 @@ namespace MyWedding.API.Controllers
         /// <summary>
         /// Generates the full wedding planning checklist on the Gantt (after discovery phase).
         /// </summary>
+        /// <response code="200">Checklist generated.</response>
+        /// <response code="401">Caller is not authenticated.</response>
         [HttpPost("api/events/{eventId:guid}/tasks/generate-checklist")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GenerateFullChecklist(
             Guid eventId,
             [FromBody] ApplyChecklistPlanRequest? request)
@@ -274,7 +308,14 @@ namespace MyWedding.API.Controllers
             });
         }
 
+        /// <summary>
+        /// Generates discovery-phase tasks for a new event (before full checklist).
+        /// </summary>
+        /// <response code="200">Discovery tasks generated.</response>
+        /// <response code="401">Caller is not authenticated.</response>
         [HttpPost("api/events/{eventId:guid}/tasks/generate-discovery")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GenerateDiscoveryTasks(Guid eventId)
         {
             var userId = GetUserId();
@@ -303,7 +344,11 @@ namespace MyWedding.API.Controllers
         /// <summary>
         /// Realigns incomplete template tasks from today forward (fixes overdue schedules for mid-planning weddings).
         /// </summary>
+        /// <response code="200">Schedule realigned.</response>
+        /// <response code="401">Caller is not authenticated.</response>
         [HttpPost("api/events/{eventId:guid}/tasks/realign-schedule")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> RealignTaskSchedule(Guid eventId)
         {
             var userId = GetUserId();
@@ -353,11 +398,16 @@ namespace MyWedding.API.Controllers
         Guid? DependsOnTaskId,
         bool UpdateDependency = false);
 
+    /// <summary>Payload for applying a personalized checklist plan.</summary>
+    /// <param name="ExcludeTemplateTitles">Template task titles to skip.</param>
+    /// <param name="AdditionalTasks">Extra tasks to add beyond the template.</param>
+    /// <param name="MarkBriefComplete">Whether to mark the event brief complete after apply.</param>
     public record ApplyChecklistPlanRequest(
         IReadOnlyList<string>? ExcludeTemplateTitles,
         IReadOnlyList<AdditionalChecklistTaskRequest>? AdditionalTasks,
         bool MarkBriefComplete = true);
 
+    /// <summary>Additional task to include when applying a personalized checklist.</summary>
     public record AdditionalChecklistTaskRequest(
         string Title,
         string? Description,

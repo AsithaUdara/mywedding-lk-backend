@@ -9,6 +9,9 @@ using System.Security.Claims;
 
 namespace MyWedding.API.Controllers;
 
+/// <summary>
+/// Vendor calendar availability: view booked dates and block/unblock dates.
+/// </summary>
 [ApiController]
 [Route("api/vendor/availability")]
 [Authorize]
@@ -17,7 +20,9 @@ public class VendorAvailabilityController : ControllerBase
     private readonly IMediator _mediator;
     private readonly IVendorBlockedDateRepository _blockedDateRepository;
     private readonly IUnitOfWork _unitOfWork;
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VendorAvailabilityController"/> class.
+        /// </summary>
     public VendorAvailabilityController(
         IMediator mediator,
         IVendorBlockedDateRepository blockedDateRepository,
@@ -30,7 +35,17 @@ public class VendorAvailabilityController : ControllerBase
 
     private string? GetVendorId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+    /// <summary>
+    /// Returns availability for a calendar month (booked and blocked dates).
+    /// </summary>
+    /// <param name="month">Month in yyyy-MM format.</param>
+    /// <response code="200">Availability data returned.</response>
+    /// <response code="400">Invalid month format.</response>
+    /// <response code="401">Caller is not authenticated.</response>
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetAvailability([FromQuery] string month, CancellationToken cancellationToken)
     {
         var vendorId = GetVendorId();
@@ -52,7 +67,17 @@ public class VendorAvailabilityController : ControllerBase
             : Ok(availability);
     }
 
+    /// <summary>
+    /// Blocks a date on the vendor's calendar.
+    /// </summary>
+    /// <param name="request">Date (ISO format) and optional reason.</param>
+    /// <response code="200">Date blocked.</response>
+    /// <response code="400">Invalid date.</response>
+    /// <response code="401">Caller is not authenticated.</response>
     [HttpPost("block")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> BlockDate([FromBody] BlockVendorDateRequest request, CancellationToken cancellationToken)
     {
         var vendorId = GetVendorId();
@@ -81,7 +106,19 @@ public class VendorAvailabilityController : ControllerBase
         return Ok(new { message = "Date blocked.", date = date.ToString("yyyy-MM-dd") });
     }
 
+    /// <summary>
+    /// Removes a blocked date from the vendor's calendar.
+    /// </summary>
+    /// <param name="date">Date to unblock (yyyy-MM-dd).</param>
+    /// <response code="204">Date unblocked.</response>
+    /// <response code="400">Invalid date format.</response>
+    /// <response code="401">Caller is not authenticated.</response>
+    /// <response code="404">Blocked date not found.</response>
     [HttpDelete("block/{date}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UnblockDate(string date, CancellationToken cancellationToken)
     {
         var vendorId = GetVendorId();
@@ -119,4 +156,5 @@ public class VendorAvailabilityController : ControllerBase
     }
 }
 
+/// <summary>Payload for blocking a vendor calendar date.</summary>
 public record BlockVendorDateRequest(string Date, string? Reason);

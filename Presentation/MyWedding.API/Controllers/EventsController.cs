@@ -21,7 +21,9 @@ namespace MyWedding.API.Controllers;
 public class EventsController : ControllerBase
 {
     private readonly IMediator _mediator;
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EventsController"/> class.
+        /// </summary>
     public EventsController(IMediator mediator)
     {
         _mediator = mediator;
@@ -34,7 +36,13 @@ public class EventsController : ControllerBase
     /// </summary>
     /// <param name="request">The details of the event to create.</param>
     /// <returns>The ID of the created event.</returns>
+    /// <response code="201">Event created successfully.</response>
+    /// <response code="401">Caller is not authenticated.</response>
+    /// <response code="403">Only admins may create events directly; couples join via invitation.</response>
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CreateEvent([FromBody] CreateEventRequest request)
     {
         var userId = GetUserId();
@@ -67,7 +75,13 @@ public class EventsController : ControllerBase
     /// </summary>
     /// <param name="id">The unique identifier of the wedding event.</param>
     /// <returns>The wedding event details if found.</returns>
+    /// <response code="200">Event returned successfully.</response>
+    /// <response code="401">Caller is not authenticated.</response>
+    /// <response code="404">Event not found or access denied.</response>
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetEventById(Guid id)
     {
         var userId = GetUserId();
@@ -84,7 +98,11 @@ public class EventsController : ControllerBase
     /// Retrieves all wedding events where the current user is an owner or organizer.
     /// </summary>
     /// <returns>A list of wedding events.</returns>
+    /// <response code="200">Events returned successfully.</response>
+    /// <response code="401">Caller is not authenticated.</response>
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetEventsForCurrentUser()
     {
         var userId = GetUserId();
@@ -103,7 +121,11 @@ public class EventsController : ControllerBase
     /// <param name="eventId">The unique identifier of the wedding event.</param>
     /// <param name="request">The new budget amount.</param>
     /// <returns>NoContent if successful.</returns>
+    /// <response code="204">Budget updated successfully.</response>
+    /// <response code="401">Caller is not authenticated.</response>
     [HttpPut("{eventId:guid}/budget")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> SetTotalBudget(Guid eventId, [FromBody] SetTotalBudgetRequest request)
     {
         var userId = GetUserId();
@@ -127,7 +149,9 @@ public class EventsController : ControllerBase
     /// </summary>
     /// <param name="eventId">The unique identifier of the wedding event.</param>
     /// <returns>A list of invitations and their statuses.</returns>
+    /// <response code="200">Invitations returned successfully.</response>
     [HttpGet("{eventId:guid}/invitations")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetInvitations(Guid eventId)
     {
         var query = new GetEventInvitationsQuery { EventId = eventId };
